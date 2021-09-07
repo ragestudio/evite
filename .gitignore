@@ -1,49 +1,21 @@
-# dependencies
-/docs
-/node_modules
-/nodecore_modules
-/npm-debug.log*
-/yarn-error.log
-/yarn.lock
-/package-lock.json
+# Secrets
+/**/**/.env
+/**/**/origin.server
+/**/**/server.manifest
+/**/**/server.registry
 
-nodecore_debug
+# Trash
+/**/**/.tmp
+/**/**/dist
+/**/**/node_modules
+/**/**/corenode_modules
+/**/**/.DS_Store
 
-/packages/*/dist
-/packages/*/docs
-/packages/*/src/.umi
-/packages/*/src/.umi-test
-/packages/*/src/.umi-production
-/packages/*/package-lock.json
-/packages/*/.DS_Store
-/packages/*/nodecore_logs
-/packages/*/node_modules
-/packages/*/nodecore_modules
+# Logs
+/**/**/npm-debug.log*
+/**/**/yarn-error.log
+/**/**/dumps.log
+/**/**/corenode.log
 
-.DS_Store
-lastTest.js
-test.js
-unitTest.js
-nodecore_logs
-logs_dump.log
-.aliaser
-package-lock.json
-
-*/.umi
-*/**/.umi
-
-dumps.log
-origin.server
-server.registry
-server.manifest
-package-lock.json
-yarn.lock
-
-*/**/node_modules
-*/**/dist
-*/**/dumps.log
-*/**/origin.server
-*/**/server.registry
-*/**/server.manifest
-*/**/package-lock.json
-*/**/yarn.lock
+# Temporal configurations
+/**/**/.aliaser
