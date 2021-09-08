@@ -1,7 +1,12 @@
 {
   "name": "evite",
-  "version": "0.2.8",
+  "version": "0.3.8",
   "description": "",
+  "files": [
+    "dist",
+    "core",
+    "bin"
+  ],
   "main": "./dist/index.js",
   "bin": {
     "evite": "./bin/index.js"
@@ -14,13 +19,14 @@
   "author": "RageStudio",
   "license": "ISC",
   "dependencies": {
-    "@corenode/utils": "^0.26.5",
+    "@corenode/utils": "^0.26.9",
+    "corenode": "^0.26.9",
     "@foxify/events": "^2.0.1",
     "@loadable/component": "^5.15.0",
     "@ragestudio/cloudlink": "^0.5.35",
     "cookie_js": "^1.4.2",
-    "corenode": "^0.26.5",
     "express": "^4.17.1",
+    "find-up": "^6.0.0",
     "history": "^4.10.1",
     "js-cookie": "^2.2.1",
     "jwt-decode": "^3.1.2",
