@@ -118,13 +118,6 @@ function createEviteApp(context) {
             this.eventBus.on("app_load_done", async () => {
                 this.toogleLoading(false)
             })
-
-            this.appendToApp("about", {
-                versions: {
-                    evite: global._eviteVersion,
-                    ...global._versions
-                } 
-            })
         }
 
         toogleLoading = (to) => {
