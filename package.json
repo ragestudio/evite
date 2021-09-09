@@ -3,14 +3,15 @@
   "version": "0.3.21",
   "description": "",
   "files": [
-    "dist",
     "bin"
   ],
-  "main": "./dist/index.js",
+  "main": "./index.js",
   "bin": {
     "evite-dev": "./dist/bin/createServer.js"
   },
   "scripts": {
+    "pack": "cp package.json dist/package.json && npm pack ./dist",
+    "pub": "npm publish $(node -p \"p=require('./package.json');p.name+'-'+p.version+'.tgz'\")",
     "build": "vite build",
     "build:src": "corenode build",
     "release:prod": "yarn build && corenode publish --npm --github"
