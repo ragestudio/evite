@@ -19,8 +19,8 @@
   "author": "RageStudio",
   "license": "ISC",
   "dependencies": {
-    "@corenode/utils": "^0.26.11",
-    "corenode": "^0.26.11",
+    "@corenode/utils": "^0.26.12",
+    "corenode": "^0.26.12",
     "@foxify/events": "^2.0.1",
     "@loadable/component": "^5.15.0",
     "@ragestudio/cloudlink": "^0.5.35",
