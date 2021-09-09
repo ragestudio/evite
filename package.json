@@ -4,12 +4,11 @@
   "description": "",
   "files": [
     "dist",
-    "core",
-    "bin"
+    "core"
   ],
   "main": "./dist/index.js",
   "bin": {
-    "evite-dev": "./bin/createServer.js"
+    "evite-dev": "./core/createServer.js"
   },
   "scripts": {
     "build": "vite build",
