@@ -1,6 +1,6 @@
 {
   "name": "evite",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "description": "",
   "files": [
     "dist",
@@ -8,7 +8,7 @@
   ],
   "main": "./dist/index.js",
   "bin": {
-    "evite-dev": "./bin/createServer.js"
+    "evite-dev": "./dist/bin/createServer.js"
   },
   "scripts": {
     "build": "vite build",
@@ -18,14 +18,12 @@
   "author": "RageStudio",
   "license": "ISC",
   "dependencies": {
-    "@corenode/utils": "^0.26.13",
-    "corenode": "^0.26.13",
+    "@corenode/utils": "^0.26.14",
+    "corenode": "^0.26.14",
     "@foxify/events": "^2.0.1",
     "@loadable/component": "^5.15.0",
     "@ragestudio/cloudlink": "^0.5.35",
-    "cookie_js": "^1.4.2",
     "express": "^4.17.1",
-    "find-up": "^6.0.0",
     "history": "^4.10.1",
     "js-cookie": "^2.2.1",
     "jwt-decode": "^3.1.2",
