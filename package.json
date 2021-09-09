@@ -1,10 +1,10 @@
 {
   "name": "evite",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "description": "",
   "files": [
     "dist",
-    "core"
+    "bin"
   ],
   "main": "./dist/index.js",
   "bin": {
