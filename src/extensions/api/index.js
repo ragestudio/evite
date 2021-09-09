@@ -15,7 +15,7 @@ export default {
             ],
             self: {
                 createBridge: async () => {
-                    const getContext = () => {
+                    const getContext = async () => {
                         let context = Object()
 
                         if (typeof self.onGetContext === "function") {
