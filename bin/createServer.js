@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx corenode
-const path = require('path')
-const { createEviteServer } = require(path.resolve(__dirname, './index.js'))
+const path = require("path")
+const { createEviteServer } = require("evite")
 
 createEviteServer()
     .then((server) => {
