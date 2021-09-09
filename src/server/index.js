@@ -1,4 +1,4 @@
-const thisPkg = require("./package.json")
+const thisPkg = require("../package.json")
 const path = require("path")
 const fs = require("fs")
 
