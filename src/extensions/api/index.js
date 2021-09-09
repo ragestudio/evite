@@ -1,7 +1,5 @@
 import config from 'config'
 import cloudlinkClient from "@ragestudio/cloudlink/dist/client"
-import { notification } from "antd"
-import * as session from "core/models/session"
 
 export default {
     key: "apiBridge",
@@ -17,26 +15,33 @@ export default {
             ],
             self: {
                 createBridge: async () => {
-                    const getSessionContext = () => {
-                        const obj = {}
-                        const thisSession = session.get()
+                    const getContext = () => {
+                        let context = Object()
 
-                        if (typeof thisSession !== "undefined") {
-                            obj.headers = {
-                                Authorization: `Bearer ${thisSession ?? null}`,
+                        if (typeof self.onGetContext === "function") {
+                            const returnedContext = await self.onGetContext()
+
+                            // this would need some override method
+                            context = { ...context, ...returnedContext }
+                        }
+
+                        if (typeof self.onGetSessionContext === "function") {
+                            const sessionContext = await self.onGetSessionContext()
+
+                            if (typeof sessionContext.bearer === "string") {
+                                context.headers = {
+                                    Authorization: `Bearer ${sessionContext.bearer ?? null}`,
+                                }
                             }
                         }
 
-                        return obj
+                        return context
                     }
 
                     return cloudlinkClient
-                        .createInterface(config.api.address, getSessionContext)
+                        .createInterface(config.api.address, getContext)
                         .catch((err) => {
-                            notification.error({
-                                message: `Cannot connect with the API`,
-                                description: err.toString(),
-                            })
+                            self.eventBus("api_connection_error", err)
                             console.error(`CANNOT BRIDGE API > ${err}`)
                         })
                 },
