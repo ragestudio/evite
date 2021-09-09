@@ -1,15 +1,14 @@
 {
   "name": "evite",
-  "version": "0.3.11",
+  "version": "0.3.13",
   "description": "",
   "files": [
     "dist",
-    "core",
-    "bin"
+    "core"
   ],
   "main": "./dist/index.js",
   "bin": {
-    "evite-dev": "./bin/createServer.js"
+    "evite-dev": "./core/createServer.js"
   },
   "scripts": {
     "build": "vite build",
