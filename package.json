@@ -11,7 +11,7 @@
     "evite-dev": "./bin/createServer.js"
   },
   "scripts": {
-    "release": "rm -rf ./dist && npm run build:src && cp ./package.json ./dist/package.json && npm publish dist",
+    "release": "rm -rf ./dist && npm run build:src && cp ./package.json ./dist/package.json && npm publish ./dist",
     "build": "vite build",
     "build:src": "corenode build",
     "release:prod": "yarn build:src && corenode publish --npm --github"
