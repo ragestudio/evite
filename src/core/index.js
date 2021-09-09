@@ -73,7 +73,7 @@ const BaseConfiguration = {
 }
 
 function getLessBaseVars() {
-    const configPath = process.env.lessBaseVariables ?? path.resolve(__dirname, "./config/variables.less")
+    const configPath = process.env.lessBaseVariables ?? path.join(BaseAliases.config, "variables.less")
 
     if (!fs.existsSync(configPath)) {
         return false
