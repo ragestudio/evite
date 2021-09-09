@@ -1,7 +1,8 @@
 const path = require("path")
 const fs = require("fs")
 
-const { findUpSync, overrideObjects } = require("@corenode/utils")
+const { findUpSync } = require("corenode/dist/filesystem")
+const { overrideObjects } = require("@corenode/utils")
 const lessToJS = require("less-vars-to-js")
 
 const { createServer } = require("vite")
