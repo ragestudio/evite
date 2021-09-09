@@ -10,18 +10,30 @@ const { createServer } = require("vite")
 const overridesFilepath = findUpSync(['evite_override.js'])
 const customPluginsFilepath = findUpSync(['evite_plugins.js'])
 
+const baseCwd = process.cwd()
+const sourcePath = path.resolve(baseCwd, "./src")
+
+const CwdAliases ={
+    "$": baseCwd,
+    schemas: path.join(baseCwd, 'schemas'),
+    interface: path.join(baseCwd, 'interface'),
+    config: path.join(baseCwd, './config'),
+}
+
+const SourceAliases = {
+    "@": sourcePath,
+    extensions: path.join(sourcePath, 'extensions'),
+    theme: path.join(sourcePath, 'theme'),
+    locales: path.join(sourcePath, 'locales'),
+    core: path.join(sourcePath, 'core'),
+    pages: path.join(sourcePath, 'pages'),
+    components: path.join(sourcePath, 'components'),
+    models: path.join(sourcePath, 'models'),
+}
+
 const BaseAliases = {
-    extensions: path.resolve(__dirname, './src/extensions'),
-    "@": path.resolve(__dirname, './src'),
-    schemas: path.resolve(__dirname, './schemas'),
-    interface: path.resolve(__dirname, './interface'),
-    theme: path.resolve(__dirname, './src/theme'),
-    locales: path.resolve(__dirname, './src/locales'),
-    core: path.resolve(__dirname, './src/core'),
-    config: path.resolve(__dirname, './config'),
-    pages: path.resolve(__dirname, './src/pages'),
-    components: path.resolve(__dirname, './src/components'),
-    models: path.resolve(__dirname, './src/models'),
+    ...CwdAliases,
+    ...SourceAliases
 }
 
 const BaseConfiguration = {
