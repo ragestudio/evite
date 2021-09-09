@@ -120,7 +120,10 @@ function createEviteApp(context) {
             })
 
             this.appendToApp("about", {
-
+                versions: {
+                    evite: global._eviteVersion,
+                    ...global._versions
+                } 
             })
         }
 

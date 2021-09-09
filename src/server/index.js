@@ -1,3 +1,4 @@
+const thisPkg = require("./package.json")
 const path = require("path")
 const fs = require("fs")
 
@@ -53,7 +54,9 @@ const BaseConfiguration = {
     },
     define: {
         global: {
-            project,
+            _versions: process.versions,
+            _eviteVersion: thisPkg.version,
+            project: global.project,
             aliases: BaseAliases,
         },
         "process.env": _env,
