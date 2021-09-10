@@ -38,7 +38,7 @@ const BaseAliases = {
 }
 
 const BaseConfiguration = {
-    aliases: {...BaseAliases},
+    aliases: [],
     configFile: false,
     plugins: [
         require("@vitejs/plugin-react-refresh"),
@@ -70,10 +70,7 @@ const BaseConfiguration = {
                 modifyVars: getLessBaseVars(),
             },
         },
-    },
-    resolve: {
-        alias: BaseAliases,
-    },
+    }
 }
 
 function getLessBaseVars() {
@@ -102,7 +99,6 @@ function getConfig(_overrides) {
             if (typeof overrides !== "function") {
                 throw new Error("Override config file must be an function")
             }
-
             config = overrides(config)
         } catch (e) {
             console.error(e)
@@ -126,11 +122,35 @@ function getConfig(_overrides) {
 
     // parse config
     if (typeof config.aliases === "object") {
-        if (Object.keys(config.aliases).length > 0) {
-            config.resolve.alias ={ ...config.resolve.alias, ...config.aliases}
+        let aliases = []
+
+        // parse base aliases
+        Object.keys(BaseAliases).forEach(key => {
+            aliases.push({
+                find: key,
+                replacement: BaseAliases[key]
+            })
+        })
+
+        // parse overrides
+        if (Array.isArray(config.aliases)) {
+            aliases = [...aliases, ...config.aliases]
+        }else {
+            Object.keys(config.aliases).forEach(key => {
+                aliases.push({
+                    find: key,
+                    replacement: config.aliases[key]
+                })
+            })
         }
+        
+        if (typeof config.resolve === "undefined") {
+            config.resolve = Object()
+        }
+
+        config.resolve.alias = aliases
     }
-    
+
     return config
 }
 
