@@ -1,7 +1,7 @@
 import React from "react"
 import { createBrowserHistory } from "history"
 import { verbosity, objectToArrayMap } from "@corenode/utils"
-import { EventBus, classAggregation } from "./lib"
+import { EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp } from "./lib"
 
 function getEviteConstructor(context) {
     return class EviteApp {
@@ -44,7 +44,7 @@ function getEviteConstructor(context) {
                 extension.exec(this)
             }
 
-            // this overwritte `this` property
+            // this overwrites `this` property
             if (typeof extension.self !== "undefined") {
                 this.bindSelf(extension.self)
             }
@@ -157,46 +157,6 @@ function createEviteApp(context) {
     }
 }
 
-function appendMethodToApp(key, fn, ...args) {
-    if (typeof window[key] !== "undefined") {
-        throw new Error(`${key} already exists`)
-    }
-
-    if (typeof fn !== "function") {
-        throw new Error(`${key} must be a function`)
-    }
-
-    return (window.app[key] = () => {
-        return fn(...args)
-    })
-}
-
-const GlobalBindingProvider = (props) => {
-    const context = {}
-
-    objectToArrayMap(props).forEach((prop) => {
-        if (prop.key === "children") {
-            return false
-        }
-
-        if (typeof prop.value === "function") {
-            prop.value = prop.value()
-        }
-
-        context[prop.key] = prop.value
-    })
-
-    if (Array.isArray(props.children)) {
-        return props.children.map((children) => {
-            return React.cloneElement(children, { ...context })
-        })
-    }
-
-    return React.cloneElement(props.children, { ...context })
-}
-
-export default createEviteApp
-
 export {
     EventBus,
     classAggregation,
@@ -204,3 +164,5 @@ export {
     GlobalBindingProvider,
     appendMethodToApp
 }
+
+export default createEviteApp
