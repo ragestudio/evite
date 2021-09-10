@@ -1,10 +1,6 @@
 #!/usr/bin/env -S npx corenode
-const { createEviteServer } = require("evite/server/index.js")
+const { EviteServer } = require("evite/server")
 
-createEviteServer()
-    .then((server) => {
-        server.listen()
-    })
-    .catch((err) => {
-        console.error(err)
-    })
+//TODO: Support activate SSR with cli arguments
+const server = new EviteServer()
+server.initialize()
