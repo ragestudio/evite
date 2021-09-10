@@ -38,6 +38,7 @@ const BaseAliases = {
 }
 
 const BaseConfiguration = {
+    aliases: {...BaseAliases},
     configFile: false,
     plugins: [
         require("@vitejs/plugin-react-refresh"),
@@ -98,11 +99,11 @@ function getConfig(_overrides) {
         try {
             const overrides = require(overridesFilepath)
 
-            if (typeof overrides !== "object") {
-                throw new Error("Override config file must be an object")
+            if (typeof overrides !== "function") {
+                throw new Error("Override config file must be an function")
             }
 
-            config = overrideObjects(config, overrides)
+            config = overrides(config)
         } catch (e) {
             console.error(e)
         }
@@ -123,6 +124,13 @@ function getConfig(_overrides) {
         }
     }
 
+    // parse config
+    if (typeof config.aliases === "object") {
+        if (Object.keys(config.aliases).length > 0) {
+            config.resolve.alias ={ ...config.resolve.alias, ...config.aliases}
+        }
+    }
+    
     return config
 }
 
