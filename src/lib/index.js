@@ -1,2 +1,7 @@
 export { default as EventBus } from './eventBus'
 export { default as classAggregation } from './classAggregation'
+export { default as GlobalBindingProvider } from './globalBindingProvider'
+export { default as appendMethodToApp } from './appendMethodToApp'
+export { default as getDefaultHtmlTemplate } from './getDefaultHtmlTemplate'
+export { default as getLessBaseVars } from './getLessBaseVars'
+export { default as getConfig } from './getConfig'
