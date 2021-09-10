@@ -11,10 +11,11 @@
     "evite-dev": "./bin/createServer.js"
   },
   "scripts": {
-    "release": "rm -rf ./dist && npm run build:src && cp ./package.json ./dist/package.json && npm publish ./dist",
+    "postinstall": "npm run build:src && npm run link:dist",
+    "link:dist": "cd ./dist && yarn link && cd - && yarn link 'evite'",
+    "release": "npm run build:src && npm publish ./dist",
     "build": "vite build",
-    "build:src": "corenode build",
-    "release:prod": "yarn build:src && corenode publish --npm --github"
+    "build:src": "rm -rf ./dist && corenode build && cp ./package.json ./dist/package.json"
   },
   "author": "RageStudio",
   "license": "ISC",
