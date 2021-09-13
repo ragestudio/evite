@@ -53,6 +53,11 @@ const BaseConfiguration = global.BaseConfiguration = {
         }),
     ],
     server: {
+        watch = {
+            ignored: [selfSourceGlob],
+            usePolling: true,
+            interval: 100,
+        },
         port: process.env.port ?? 8000,
         host: process.env.host ?? "0.0.0.0",
         fs: {
@@ -147,11 +152,6 @@ class EviteServer {
         this.httpServer = express()
 
         this.config.server.middlewareMode = "ssr"
-        this.config.server.watch = {
-            ignored: [selfSourceGlob],
-            usePolling: true,
-            interval: 100,
-        }
 
         if (isProduction) {
             this.httpServer.use(require("compression")())
