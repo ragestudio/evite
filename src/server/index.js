@@ -147,7 +147,7 @@ class EviteServer {
         this.httpServer = express()
 
         this.config.server.middlewareMode = "ssr"
-        this.config.server.watch ={
+        this.config.server.watch = {
             ignored: [selfSourceGlob],
             usePolling: true,
             interval: 100,
@@ -192,7 +192,7 @@ class EviteServer {
                     // Somewhere a `<Redirect>` was rendered
                     return res.redirect(301, context.url)
                 }
-                
+
                 res.status(200).set({ "Content-Type": "text/html" }).end(htmlTemplate.replace(`<!--app-html-->`, appHtml))
             } catch (error) {
                 !isProduction && this.eviteServer.ssrFixStacktrace(error)
