@@ -8,7 +8,7 @@
   ],
   "main": "./index.js",
   "bin": {
-    "evite-dev": "./bin/cli.js"
+    "evite": "./bin/cli.js"
   },
   "scripts": {
     "linkAll": "npm run build:src && npm run link:dist",
