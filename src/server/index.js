@@ -53,7 +53,7 @@ const BaseConfiguration = global.BaseConfiguration = {
         }),
     ],
     server: {
-        watch = {
+        watch: {
             ignored: [selfSourceGlob],
             usePolling: true,
             interval: 100,
