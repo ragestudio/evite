@@ -13,6 +13,7 @@ const { getDefaultHtmlTemplate, getLessBaseVars, getConfig } = require("../lib")
 const baseCwd = process.cwd()
 const sourcePath = path.resolve(baseCwd, (process.env.sourcePath ?? "src"))
 const distPath = path.resolve(baseCwd, (process.env.distPath ?? "dist"))
+const outPath = path.resolve(baseCwd, (process.env.outPath ?? "out"))
 
 // GLOBALS
 const cachePath = global.cachePath = path.resolve(__dirname, ".cache")
@@ -52,6 +53,15 @@ const BaseConfiguration = global.BaseConfiguration = {
             browser: true,
         }),
     ],
+    build: {
+        outDir: distPath,
+        emptyOutDir: true,
+        rollupOptions: {},
+    },
+    optimizeDeps: {
+        auto: true,
+        exclude: ['path'],
+    },
     server: {
         watch: {
             ignored: [selfSourceGlob],
@@ -121,7 +131,7 @@ class EviteServer {
             ...this.params.aliases,
         }
 
-        this.entryAppPath = this.params.entryApp ?? path.resolve(sourcePath, "App.js") // TODO: use findUpSync
+        this.entryAppPath = this.params.entryApp ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: path.resolve(baseCwd, "src") }) // TODO: use findUpSync
         this.httpServer = null
         this.eviteServer = null
 
@@ -144,8 +154,13 @@ class EviteServer {
         return template
     }
 
+    build = async () => {
+        return await vite.build(this.config)
+    }
+
     initialize = async () => {
-        return this.eviteServer = await vite.createServer(this.config)
+        this.eviteServer = await vite.createServer(this.config)
+        return await this.eviteServer.listen()
     }
 
     initializeSSR = async () => {
@@ -156,7 +171,7 @@ class EviteServer {
         if (isProduction) {
             this.httpServer.use(require("compression")())
             app.use(
-                require("serve-static")(path.resolve(distPath, "client"), {
+                require("serve-static")(path.resolve(outPath, "client"), {
                     index: false,
                 })
             )
@@ -181,7 +196,7 @@ class EviteServer {
                     htmlTemplate = await this.eviteServer.transformIndexHtml(url, this.getHtmlTemplate()) // get client html template
                     renderMethod = (await this.eviteServer.ssrLoadModule(serverEntryPath)).render // get ssr render function
                 } else {
-                    htmlTemplate = path.resolve(distPath, "index.html")
+                    htmlTemplate = path.resolve(outPath, "index.html")
                     renderMethod = require(serverEntryPath).render
                 }
 
