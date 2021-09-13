@@ -1,6 +1,6 @@
 import React from "react"
 import { createBrowserHistory } from "history"
-import { verbosity, objectToArrayMap } from "@corenode/utils"
+import { objectToArrayMap } from "@corenode/utils"
 import { EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp } from "./lib"
 
 function getEviteConstructor(context) {
@@ -33,6 +33,7 @@ function getEviteConstructor(context) {
                 })
             }
         }
+        
 
         attachExtension = (extension) => {
             if (typeof extension.key !== "string") {

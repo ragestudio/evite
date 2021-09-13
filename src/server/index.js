@@ -53,12 +53,6 @@ const BaseConfiguration = global.BaseConfiguration = {
         }),
     ],
     server: {
-        middlewareMode: "html",
-        watch: {
-            ignored: [selfSourceGlob],
-            usePolling: true,
-            interval: 100,
-        },
         port: process.env.port ?? 8000,
         host: process.env.host ?? "0.0.0.0",
         fs: {
@@ -84,7 +78,6 @@ const BaseConfiguration = global.BaseConfiguration = {
         },
     }
 }
-
 class CacheObject {
     constructor(key) {
         this.root = global.cachePath ?? path.join(process.cwd(), ".cache")
@@ -114,7 +107,6 @@ class CacheObject {
         return this
     }
 }
-
 class EviteServer {
     constructor(params) {
         this.params = { ...params }
@@ -148,13 +140,18 @@ class EviteServer {
     }
 
     initialize = async () => {
-        this.config.server.middlewareMode = "html"
         return this.eviteServer = await vite.createServer(this.config)
     }
 
     initializeSSR = async () => {
         this.httpServer = express()
+
         this.config.server.middlewareMode = "ssr"
+        this.config.server.watch ={
+            ignored: [selfSourceGlob],
+            usePolling: true,
+            interval: 100,
+        }
 
         if (isProduction) {
             this.httpServer.use(require("compression")())
