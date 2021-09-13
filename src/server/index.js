@@ -60,7 +60,6 @@ const BaseConfiguration = global.BaseConfiguration = {
     },
     optimizeDeps: {
         auto: true,
-        exclude: ['path'],
     },
     server: {
         watch: {
