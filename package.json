@@ -11,7 +11,7 @@
     "evite-dev": "./bin/createServer.js"
   },
   "scripts": {
-    "postinstall": "npm run build:src && npm run link:dist",
+    "linkAll": "npm run build:src && npm run link:dist",
     "link:dist": "cd ./dist && yarn link && cd - && yarn link 'evite'",
     "release": "npm run build:src && npm publish ./dist",
     "build": "vite build",
