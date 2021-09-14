@@ -1,12 +1,10 @@
-const path = require("path")
 const fs = require("fs")
 
 const { findUpSync } = require("corenode/dist/filesystem")
 const { overrideObjects } = require("@corenode/utils")
 
-export default (override) => {
-    const overridesFilepath = findUpSync(global.configFile ?? ".config.js")
-    let config = {...global.BaseConfiguration}
+export default (config = {}, override) => {
+    const overridesFilepath = findUpSync(global.configFile ?? [".config.js", "evite.js",], { cwd: process.cwd() })
 
     // handle augmented overrides
     if (typeof override !== "undefined") {
