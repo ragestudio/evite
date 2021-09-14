@@ -1,21 +1,23 @@
 #!/usr/bin/env -S npx corenode
-const { EviteServer } = require("evite/server")
-const { entry } = runtime.args
+const { EviteServer } = require("../server/index.js")
+const { entry, ssr } = runtime.args
 
 const exec = runtime.argv[1]
 
 const cliHandler = {
-    dev: () => {
-        const server = new EviteServer({
+    dev: async () => {
+        let server = await new EviteServer({
             entryApp: entry
         })
-        server.initialize()
+
+        if (ssr) {
+            (await server.initialize()).listen()
+        } else {
+            (await server.initialize()).listen()
+        }
     },
     build: () => {
-        const server = new EviteServer({
-            entryApp: entry
-        })
-        server.build()
+        console.error("Build isn`t already available")
     }
 }
 
@@ -26,7 +28,3 @@ if (typeof exec !== "undefined") {
 } else {
     throw new Error("No command specified!")
 }
-
-
-
-
