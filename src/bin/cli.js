@@ -7,7 +7,7 @@ const exec = runtime.argv[1]
 const cliHandler = {
     dev: async () => {
         let server = await new EviteServer({
-            entryApp: entry
+            entry
         })
 
         if (ssr) {
