@@ -180,6 +180,10 @@ class EviteServer {
     }
 
     initialize = async () => {
+        if (!this.entry) {
+            throw new Error(`No entry provided`)
+        }
+
         const basePort = this.config.server.port
         const handler = this.handleRequest
         process.env.__DEV_MODE_SSR = 'true'
@@ -187,7 +191,6 @@ class EviteServer {
         // TODO: initialize evite extensions
             // TODO: overrideBeforeConfig
         const main = await import(this.entry)
-        console.log(main)
 
         this.externalizeBuiltInModules()
         this.config.server.middlewareMode = 'ssr'
