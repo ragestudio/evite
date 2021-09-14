@@ -6,9 +6,10 @@ const path = require("path")
 const fs = require("fs")
 
 const { findUpSync } = require("corenode/dist/filesystem")
-const { getDefaultHtmlTemplate, getConfig, buildHtml } = require("../lib")
+const { getDefaultHtmlTemplate, getProjectConfig, buildHtml } = require("../lib")
 
 // GLOBALS
+global.paths = {}
 const baseCwd = global.paths.base = process.cwd()
 const sourcePath = global.paths.source = path.resolve(baseCwd, "src")
 const outPath = global.paths.output = path.resolve(baseCwd, "out")
@@ -39,7 +40,7 @@ const BaseAliases = global.BaseAliases = {
     ...SourceAliases
 }
 
-const BaseConfiguration = global.BaseConfiguration = require("./config.js")
+const BaseConfiguration = global.BaseConfiguration = require("./config.js").BaseConfiguration
 
 class EviteServer {
     constructor(params) {
@@ -73,7 +74,7 @@ class EviteServer {
     }
 
     getConfig = () => {
-        const base = this.params.config ?? getConfig(BaseConfiguration)
+        const base = this.params.config ?? getProjectConfig(BaseConfiguration)
         return this.overrideContextDefinitions(base)
     }
 
@@ -141,7 +142,7 @@ class EviteServer {
         }
 
         try {
-            const entryPoint = this.params.entryApp
+            const entryPoint = this.params.entry
 
             let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
             resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
@@ -185,7 +186,8 @@ class EviteServer {
 
         // TODO: initialize evite extensions
             // TODO: overrideBeforeConfig
-        
+        const main = await import(this.entry)
+        console.log(main)
 
         this.externalizeBuiltInModules()
         this.config.server.middlewareMode = 'ssr'

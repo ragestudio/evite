@@ -166,7 +166,6 @@ export const createClientEntry = async function (
     const url = window.location
     const routeBase = base && withoutSuffix(base({ url }), "/")
 
-
     const { redirect, writeResponse } = useClientRedirect(location => {
         const { push } = useHistory()
         React.useEffect(() => push(location), [push])
