@@ -1,24 +1,19 @@
 const thisPkg = require("../package.json")
 
+const express = require('express')
 const vite = require("vite")
 const path = require("path")
 const fs = require("fs")
-const express = require("express")
 
 const { findUpSync } = require("corenode/dist/filesystem")
-
-const { getDefaultHtmlTemplate, getLessBaseVars, getConfig } = require("../lib")
-
-// PATHS
-const baseCwd = process.cwd()
-const sourcePath = path.resolve(baseCwd, (process.env.sourcePath ?? "src"))
-const distPath = path.resolve(baseCwd, (process.env.distPath ?? "dist"))
-const outPath = path.resolve(baseCwd, (process.env.outPath ?? "out"))
+const { getDefaultHtmlTemplate, getConfig, buildHtml } = require("../lib")
 
 // GLOBALS
-const cachePath = global.cachePath = path.resolve(__dirname, ".cache")
+const baseCwd = global.paths.base = process.cwd()
+const sourcePath = global.paths.source = path.resolve(baseCwd, "src")
+const outPath = global.paths.output = path.resolve(baseCwd, "out")
+const distPath = global.paths.dist = path.resolve(baseCwd, "dist")
 const isProduction = global.isProduction = process.env.NODE_ENV === "production"
-const selfSourceGlob = `${path.resolve(__dirname, "..")}/**/**`
 
 const CwdAliases = {
     "$": baseCwd,
@@ -44,100 +39,63 @@ const BaseAliases = global.BaseAliases = {
     ...SourceAliases
 }
 
-const BaseConfiguration = global.BaseConfiguration = {
-    aliases: [],
-    configFile: false,
-    plugins: [
-        require("@vitejs/plugin-react-refresh"),
-        require("@rollup/plugin-node-resolve").default({
-            browser: true,
-        }),
-    ],
-    build: {
-        outDir: distPath,
-        emptyOutDir: true,
-        rollupOptions: {},
-    },
-    optimizeDeps: {
-        auto: true,
-    },
-    server: {
-        watch: {
-            ignored: [selfSourceGlob],
-            usePolling: true,
-            interval: 100,
-        },
-        port: process.env.port ?? 8000,
-        host: process.env.host ?? "0.0.0.0",
-        fs: {
-            allow: [".."]
-        },
-    },
-    define: {
-        global: {
-            _versions: process.versions,
-            _eviteVersion: thisPkg.version,
-            project: global.project,
-            aliases: BaseAliases,
-        },
-        "process.env": _env,
-        _env: _env,
-    },
-    css: {
-        preprocessorOptions: {
-            less: {
-                javascriptEnabled: true,
-                modifyVars: { ...getLessBaseVars() },
-            },
-        },
-    }
-}
-class CacheObject {
-    constructor(key) {
-        this.root = global.cachePath ?? path.join(process.cwd(), ".cache")
-        this.output = path.join(this.root, key)
+const BaseConfiguration = global.BaseConfiguration = require("./config.js")
 
-        if (!fs.existsSync(this.root)) {
-            fs.mkdirSync(this.root)
-        }
-
-        if (!fs.lstatSync(this.root).isDirectory()) {
-            throw new Error(`Cache path is not an valid root directory`)
-        }
-
-        return this
-    }
-
-    createWriteStream = () => {
-        return fs.createWriteStream(this.output)
-    }
-
-    createReadStream = () => {
-        return fs.createReadStream(this.output)
-    }
-
-    write = (content) => {
-        fs.writeFileSync(this.output, content, { encoding: "utf-8" })
-        return this
-    }
-}
 class EviteServer {
     constructor(params) {
         this.params = { ...params }
 
-        this.config = this.params.config ?? getConfig()
         this.aliases = {
             ...this.params.aliases,
         }
 
-        this.entryAppPath = this.params.entryApp ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: path.resolve(baseCwd, "src") }) // TODO: use findUpSync
-        this.httpServer = null
-        this.eviteServer = null
+        this.config = this.getConfig()
+        this.entry = this.getEntry()
+
+        this.externals = ["path", "fs"]
 
         return this
     }
 
-    getHtmlTemplate = () => {
+    overrideContextDefinitions = (config) => {
+        config.define = {
+            global: {
+                _versions: process.versions,
+                _eviteVersion: thisPkg.version,
+                project: global.project,
+                aliases: BaseAliases,
+            },
+            "process.env": _env,
+            _env: _env,
+        }
+        
+        return config
+    }
+
+    getConfig = () => {
+        const base = this.params.config ?? getConfig(BaseConfiguration)
+        return this.overrideContextDefinitions(base)
+    }
+
+    getEntry = () => {
+        let entry = null
+
+        if (typeof this.params.entry !== "undefined") {
+            entry = this.params.entry
+        } else {
+            entry = findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: path.resolve(baseCwd, "src") })
+        }
+
+        return entry
+    }
+
+    externalizeBuiltInModules = () => {
+        this.config.plugins.push(require("vite-plugin-commonjs-externals").default({
+            externals: this.externals
+        }))
+    }
+
+    getIndexHtmlTemplate = () => {
         let template = null
 
         const customHtmlTemplate = this.params.htmlTemplate ?? process.env.htmlTemplate ?? path.resolve(process.cwd(), "index.html")
@@ -146,88 +104,113 @@ class EviteServer {
             template = fs.readFileSync(customHtmlTemplate, "utf-8")
         } else {
             // create new entry client from default and writes
-            const generated = this.createEntryClientTemplate({ entryApp: this.entryAppPath }) // returns the path from generated entry
-            template = getDefaultHtmlTemplate(generated)
+            template = getDefaultHtmlTemplate(this.entry)
         }
 
         return template
     }
 
-    build = async () => {
-        return await vite.build(this.config)
+    writeHead = (response, params = {}) => {
+        if (params.status) {
+            response.statusCode = params.status
+        }
+
+        if (params.statusText) {
+            response.statusMessage = params.statusText
+        }
+
+        if (params.headers) {
+            for (const [key, value] of Object.entries(params.headers)) {
+                response.setHeader(key, value)
+            }
+        }
+    }
+
+    handleRequest = async (req, res, next) => {
+        if (req.method !== 'GET' || req.originalUrl === '/favicon.ico') {
+            return next()
+        }
+
+        const isRedirect = ({ status = 0 } = {}) => status >= 300 && status < 400
+        let template
+
+        try {
+            template = await this.server.transformIndexHtml(req.originalUrl, this.getIndexHtmlTemplate())
+        } catch (error) {
+            return next(error)
+        }
+
+        try {
+            const entryPoint = this.params.entryApp
+
+            let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
+            resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
+
+            const render = resolvedEntryPoint.render || resolvedEntryPoint
+
+            const protocol =
+                req.protocol ||
+                (req.headers.referer || '').split(':')[0] ||
+                'http'
+
+            const url = protocol + '://' + req.headers.host + req.originalUrl
+
+            this.writeHead(res, context)
+
+            if (isRedirect(context)) {
+                return res.end()
+            }
+
+            const htmlParts = await render(url, { request: req, response: res, ...context })
+
+            this.writeHead(res, htmlParts)
+
+            if (isRedirect(htmlParts)) {
+                return res.end()
+            }
+
+            res.setHeader('Content-Type', 'text/html')
+            res.end(buildHtml(template, htmlParts))
+        } catch (error) {
+            // Send back template HTML to inject ViteErrorOverlay
+            res.setHeader('Content-Type', 'text/html')
+            res.end(template)
+        }
     }
 
     initialize = async () => {
-        this.eviteServer = await vite.createServer(this.config)
-        return await this.eviteServer.listen()
-    }
+        const basePort = this.config.server.port
+        const handler = this.handleRequest
+        process.env.__DEV_MODE_SSR = 'true'
 
-    initializeSSR = async () => {
-        this.httpServer = express()
+        // TODO: initialize evite extensions
+            // TODO: overrideBeforeConfig
+        
 
-        this.config.server.middlewareMode = "ssr"
+        this.externalizeBuiltInModules()
+        this.config.server.middlewareMode = 'ssr'
 
-        if (isProduction) {
-            this.httpServer.use(require("compression")())
-            app.use(
-                require("serve-static")(path.resolve(outPath, "client"), {
-                    index: false,
-                })
-            )
-        } else {
-            if (!this.entryAppPath) {
-                throw new Error(`Entry App not found`)
-            }
+        this.http = express()
+        this.server = await vite.createServer(this.config)
+        this.http.use(this.server.middlewares)
 
-            this.eviteServer = await vite.createServer(this.config)
-            this.httpServer.use(this.eviteServer.middlewares)
-        }
+        this.fixEntryPoint(this.server)
 
-        this.httpServer.use("*", async (req, res) => {
-            try {
-                const serverEntryPath = this.createEntryServerTemplate({ entryApp: this.entryAppPath })
-                const url = req.originalUrl
+        return new Proxy(this.http, {
+            get(target, prop, receiver) {
+                if (prop === 'listen') {
+                    return async (port = basePort) => {
+                        target.use(handler)
+                        const server = await target.listen(port)
+                        console.log(`Listening on port ${port}`)
 
-                let htmlTemplate = null
-                let renderMethod = null
-
-                if (!isProduction) {
-                    htmlTemplate = await this.eviteServer.transformIndexHtml(url, this.getHtmlTemplate()) // get client html template
-                    renderMethod = (await this.eviteServer.ssrLoadModule(serverEntryPath)).render // get ssr render function
-                } else {
-                    htmlTemplate = path.resolve(outPath, "index.html")
-                    renderMethod = require(serverEntryPath).render
+                        return server
+                    }
                 }
 
-                const context = {}
-                const appHtml = renderMethod(url, context)
-
-                if (context.url) {
-                    // Somewhere a `<Redirect>` was rendered
-                    return res.redirect(301, context.url)
-                }
-
-                res.status(200).set({ "Content-Type": "text/html" }).end(htmlTemplate.replace(`<!--app-html-->`, appHtml))
-            } catch (error) {
-                !isProduction && this.eviteServer.ssrFixStacktrace(error)
-                console.log(error.stack)
-                res.status(500).end(error.stack)
-            }
+                return Reflect.get(target, prop, receiver)
+            },
         })
-
-        return { httpServer: this.httpServer, eviteServer: this.eviteServer }
-    }
-
-    createEntryClientTemplate = ({ entryApp }) => {
-        let template = require("./renderers/client.js")(entryApp)
-
-        return new CacheObject("entry_client.jsx").write(template).output
-    }
-
-    createEntryServerTemplate = ({ entryApp }) => {
-        let template = require("./renderers/server.js")(entryApp)
-
-        return new CacheObject("entry_server.jsx").write(template).output
     }
 }
 
