@@ -1,5 +1,8 @@
 {
     "babel": {
+        "presets": [
+            "@babel/preset-react"
+        ],
         "retainLines": false,
         "sourceMap": true,
         "inputSourceMap": true,
