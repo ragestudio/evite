@@ -1,18 +1,12 @@
+import { initializeEvite } from "evite"
+
 // fixme: where tf is the window context?
 global.window = {}
 
-const {EviteSSRApp} = require("evite")
-
-class App extends EviteSSRApp {
-	testFile = require(fs).readFileSync(require("path").resolve(__dirname, "test.txt"), "utf8")
-
-	initialization = () => {
-		console.log(this.testFile)
-	}
-
+class App extends EviteApp() {
 	render() {
-		return <div>This render from server side</div>
+		return <div> Evite APP! </div>
 	}
 }
 
-module.exports = App
+export default initializeEvite(App)
