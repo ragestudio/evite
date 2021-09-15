@@ -1,20 +1,16 @@
 #!/usr/bin/env -S npx corenode
 const { EviteServer } = require("../server/index.js")
-const { entry, ssr } = runtime.args
 
 const exec = runtime.argv[1]
+const { entry } = runtime.args
 
 const cliHandler = {
     dev: async () => {
         let server = await new EviteServer({
             entry
-        })
+        }).initialize()
 
-        if (ssr) {
-            (await server.initialize()).listen()
-        } else {
-            (await server.initialize()).listen()
-        }
+        await server.listen()
     },
     build: () => {
         console.error("Build isn`t already available")
