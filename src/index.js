@@ -3,6 +3,10 @@ import { createBrowserHistory } from "history"
 import { objectToArrayMap } from "@corenode/utils"
 import { EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp } from "./lib"
 
+function initializeEvite(app) {
+    
+}
+
 function getEviteConstructor(context) {
     return class EviteApp {
         constructor() {
@@ -105,7 +109,7 @@ function getEviteConstructor(context) {
     }
 }
 
-function createEviteApp(context) {
+function EviteApp(context) {
     return class extends classAggregation(React.Component, getEviteConstructor(context)) {
         constructor(props) {
             super(props)
@@ -158,11 +162,13 @@ function createEviteApp(context) {
 }
 
 export {
+    EviteSSRApp,
     EventBus,
     classAggregation,
-    createEviteApp,
+    EviteApp,
+    initializeEvite,
     GlobalBindingProvider,
     appendMethodToApp
 }
 
-export default createEviteApp
+export default EviteApp
