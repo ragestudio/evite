@@ -33,7 +33,6 @@ function getEviteConstructor(context) {
                 })
             }
         }
-        
 
         attachExtension = (extension) => {
             if (typeof extension.key !== "string") {
