@@ -142,7 +142,7 @@ class EviteServer {
         }
 
         try {
-            const entryPoint = this.params.entry
+            const entryPoint = this.entry
 
             let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
             resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
@@ -190,7 +190,7 @@ class EviteServer {
 
         // TODO: initialize evite extensions
             // TODO: overrideBeforeConfig
-        const main = await import(this.entry)
+        
 
         this.externalizeBuiltInModules()
         this.config.server.middlewareMode = 'ssr'
@@ -198,8 +198,6 @@ class EviteServer {
         this.http = express()
         this.server = await vite.createServer(this.config)
         this.http.use(this.server.middlewares)
-
-        this.fixEntryPoint(this.server)
 
         return new Proxy(this.http, {
             get(target, prop, receiver) {
