@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-const { findUpSync } = require("corenode/dist/filesystem")
+const { findUpSync } = require("corenode/filesystem")
 const { overrideObjects } = require("@corenode/utils")
 
 export default (config = {}, override) => {

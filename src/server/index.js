@@ -5,7 +5,7 @@ const vite = require("vite")
 const path = require("path")
 const fs = require("fs")
 
-const { findUpSync } = require("corenode/dist/filesystem")
+const { findUpSync } = require("corenode/filesystem")
 const { getDefaultHtmlTemplate, getProjectConfig, buildHtml } = require("../lib")
 
 // GLOBALS

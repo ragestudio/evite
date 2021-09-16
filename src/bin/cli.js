@@ -1,15 +1,14 @@
 #!/usr/bin/env -S npx corenode
 const { EviteServer } = require("../server/index.js")
+const { Command, program } = require("commander")
 
-const exec = runtime.argv[1]
-const { entry } = runtime.args
 
 const cliHandler = {
     dev: async () => {
         let server = await new EviteServer({
             entry
         }).initialize()
-
+        
         await server.listen()
     },
     build: () => {
@@ -17,10 +16,7 @@ const cliHandler = {
     }
 }
 
-if (typeof exec !== "undefined") {
-    if (typeof cliHandler[exec] === "function") {
-        cliHandler[exec]()
-    }
-} else {
-    throw new Error("No command specified!")
-}
+const devCMD = new Command("dev", "Runs the development server").arguments("[entry]").action(cliHandler.dev)
+
+program.addCommand(devCMD)
+program.parse()
