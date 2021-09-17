@@ -5,6 +5,7 @@ export { default as appendMethodToApp } from './appendMethodToApp'
 export { default as getDefaultHtmlTemplate } from './getDefaultHtmlTemplate'
 export { default as getProjectConfig } from './getProjectConfig'
 export { default as buildHtml } from './buildHtml'
+export { default as CacheObject } from './cache'
 
 export * as router from './router'
 export * as url from './url'

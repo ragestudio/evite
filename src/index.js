@@ -4,7 +4,7 @@ import { objectToArrayMap } from "@corenode/utils"
 import { EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp } from "./lib"
 
 function initializeEvite(app) {
-    
+
 }
 
 function getEviteConstructor(context) {
@@ -109,7 +109,7 @@ function getEviteConstructor(context) {
     }
 }
 
-function EviteApp(context) {
+function createEviteApp(context) {
     return class extends classAggregation(React.Component, getEviteConstructor(context)) {
         constructor(props) {
             super(props)
@@ -162,13 +162,12 @@ function EviteApp(context) {
 }
 
 export {
-    EviteSSRApp,
+    createEviteApp,
+    initializeEvite,
     EventBus,
     classAggregation,
-    EviteApp,
-    initializeEvite,
     GlobalBindingProvider,
-    appendMethodToApp
+    appendMethodToApp,
 }
 
-export default EviteApp
+export default createEviteApp

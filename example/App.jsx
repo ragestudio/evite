@@ -1,4 +1,4 @@
-import { initializeEvite } from "evite"
+const { initializeEvite } = require('evite')
 
 // fixme: where tf is the window context?
 global.window = {}
@@ -9,4 +9,4 @@ class App extends EviteApp() {
 	}
 }
 
-export default initializeEvite(App)
+module.exports = initializeEvite(App)

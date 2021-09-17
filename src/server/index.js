@@ -5,6 +5,7 @@ const vite = require("vite")
 const path = require("path")
 const fs = require("fs")
 
+const { transform } = require("corenode/transcompiler")
 const { findUpSync } = require("corenode/filesystem")
 const { getDefaultHtmlTemplate, getProjectConfig, buildHtml } = require("../lib")
 
@@ -184,13 +185,22 @@ class EviteServer {
             throw new Error(`No entry provided`)
         }
 
+        // process entry point
+        const entry = transform(fs.readFileSync(this.entry).toString(), {
+            transforms: ["jsx", "imports"],
+            jsxPragma: "React.createElement",
+            jsxFragmentPragma: "React.Fragment",
+            filePath: this.entry
+        })
+
+        console.log(entry)
+
         const basePort = this.config.server.port
         const handler = this.handleRequest
         process.env.__DEV_MODE_SSR = 'true'
 
         // TODO: initialize evite extensions
             // TODO: overrideBeforeConfig
-        
 
         this.externalizeBuiltInModules()
         this.config.server.middlewareMode = 'ssr'
