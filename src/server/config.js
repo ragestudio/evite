@@ -45,8 +45,6 @@ class BaseConfigurationController {
         this.schemaKeys = Object.keys(Schema)
         this.base = this.construct()
 
-        this.base.__proto__["mutate"] = this.mutate
-
         if (typeof override !== "undefined") {
             this.base = overrideObjects(this.base, override)
         }
