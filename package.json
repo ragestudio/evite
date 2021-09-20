@@ -11,10 +11,11 @@
     "evite": "./bin/cli.js"
   },
   "scripts": {
+    "local": "./dist/bin/cli.js",
     "linkAll": "npm run build && npm run link:dist",
     "link:dist": "cd ./dist && yarn link && cd - && yarn link 'evite'",
     "release": "npm run build && npm publish ./dist",
-    "build": "rm -rf ./dist && corenode-cli build && cp ./package.json ./dist/package.json"
+    "build": "corenode-cli build && cp ./package.json ./dist/package.json"
   },
   "author": "RageStudio",
   "license": "ISC",
@@ -55,6 +56,7 @@
     "vite-aliases": "^0.8.6",
     "vite-plugin-babel-import": "^2.0.5",
     "vite-plugin-commonjs-externals": "^0.1.1",
+    "vite-plugin-externals": "^0.3.0",
     "vite-plugin-imp": "^2.0.8",
     "vite-plugin-ssr": "^0.2.13"
   }
