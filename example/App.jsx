@@ -1,12 +1,14 @@
-const { initializeEvite } = require('evite')
+module.exports = function () {
+	this.initialize = () => {
+		console.log(this)
+	}
 
-// fixme: where tf is the window context?
-global.window = {}
-
-class App extends EviteApp() {
-	render() {
-		return <div> Evite APP! </div>
+	this.render = () => {
+		return <div> 
+			{this.state.count}
+			<button onClick={() => {this.setState({ count: this.state.count+= 1})}}>
+				add count
+			</button>
+		</div>
 	}
 }
-
-module.exports = initializeEvite(App)
