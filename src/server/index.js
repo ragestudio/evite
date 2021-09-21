@@ -4,11 +4,13 @@ const express = require('express')
 const vite = require("vite")
 const path = require("path")
 const fs = require("fs")
+const md5 = require("md5")
+const { moduleFromString } = require("@corenode/utils")
 
 const { transform } = require("corenode/transcompiler")
 const { findUpSync } = require("corenode/filesystem")
-const { getDefaultHtmlTemplate, getProjectConfig, buildHtml } = require("../lib")
-
+const {  classAggregation } = require("../client")
+const { getDefaultHtmlTemplate, getProjectConfig, CacheObject, buildHtml } = require("../lib")
 // GLOBALS
 global.paths = {}
 const baseCwd = global.paths.base = process.cwd()
@@ -43,6 +45,61 @@ const BaseAliases = global.BaseAliases = {
 
 const BaseConfiguration = global.BaseConfiguration = require("./config.js").BaseConfiguration
 
+class AppClass {
+    constructor(params) {
+        this.params = { ...params }
+
+        if (typeof this.render === "function") {
+            this.render()
+        }
+    }
+
+    static getFs() {
+        return fs
+    }
+
+
+}
+
+function getEviteClasses() {
+    const base = fs.readFileSync(require.resolve("evite"), "utf-8")
+
+    console.log(base)
+
+    return base
+}
+
+function buildReactEntry(_instance) {
+    class _staticServerClass extends classAggregation(_instance) {
+        getStaticBuild = () => {
+            return `
+            class __main__ extends React.Component {
+                render() {
+                    return <div>TEST</div>
+                }
+            }
+            
+            `
+        }
+    }
+
+    const _class = new _staticServerClass()
+    console.log(_class.super)
+
+    let base = `
+        import React from "react"
+        import ReactDOM from "react-dom"
+        import * as evite from "evite"
+       
+
+        ${_class.getStaticBuild()}
+
+        ReactDOM.render(<__main__ />, document.querySelector("#root"))
+    `
+
+    return base
+}
+
 class EviteServer {
     constructor(params) {
         this.params = { ...params }
@@ -67,10 +124,10 @@ class EviteServer {
                 project: global.project,
                 aliases: BaseAliases,
             },
-            "process.env": _env,
-            _env: _env,
+            "process.env": process.env,
+            _env: process.env,
         }
-        
+
         return config
     }
 
@@ -92,12 +149,20 @@ class EviteServer {
     }
 
     externalizeBuiltInModules = () => {
-        this.config.plugins.push(require("vite-plugin-commonjs-externals").default({
+        const commonjsExternalsPlugin = require("vite-plugin-commonjs-externals").default({
             externals: this.externals
-        }))
+        })
+        const externalsPlugin = require("vite-plugin-externals").viteExternalsPlugin({
+            "fast-glob": "fast-glob",
+            "glob-parent": "glob-parent",
+            "node": "node",
+            corenode: "corenode",
+        })
+
+        this.config.plugins.push(commonjsExternalsPlugin, externalsPlugin)
     }
 
-    getIndexHtmlTemplate = () => {
+    getIndexHtmlTemplate = (mainScript) => {
         let template = null
 
         const customHtmlTemplate = this.params.htmlTemplate ?? process.env.htmlTemplate ?? path.resolve(process.cwd(), "index.html")
@@ -106,7 +171,7 @@ class EviteServer {
             template = fs.readFileSync(customHtmlTemplate, "utf-8")
         } else {
             // create new entry client from default and writes
-            template = getDefaultHtmlTemplate(this.entry)
+            template = getDefaultHtmlTemplate(mainScript)
         }
 
         return template
@@ -128,56 +193,71 @@ class EviteServer {
         }
     }
 
-    handleRequest = async (req, res, next) => {
-        if (req.method !== 'GET' || req.originalUrl === '/favicon.ico') {
-            return next()
+    createHandleRequest = (entryPoint) => {
+        if (typeof entryPoint === "undefined") {
+            throw new Error("entryPoint is not provided")
         }
 
-        const isRedirect = ({ status = 0 } = {}) => status >= 300 && status < 400
-        let template
-
-        try {
-            template = await this.server.transformIndexHtml(req.originalUrl, this.getIndexHtmlTemplate())
-        } catch (error) {
-            return next(error)
-        }
-
-        try {
-            const entryPoint = this.entry
-
-            let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
-            resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
-
-            const render = resolvedEntryPoint.render || resolvedEntryPoint
-
-            const protocol =
-                req.protocol ||
-                (req.headers.referer || '').split(':')[0] ||
-                'http'
-
-            const url = protocol + '://' + req.headers.host + req.originalUrl
-
-            this.writeHead(res, context)
-
-            if (isRedirect(context)) {
-                return res.end()
+        return async (req, res, next) => {
+            if (req.method !== 'GET' || req.originalUrl === '/favicon.ico') {
+                return next()
             }
 
-            const htmlParts = await render(url, { request: req, response: res, ...context })
+            const isRedirect = ({ status = 0 } = {}) => status >= 300 && status < 400
+            let template
 
-            this.writeHead(res, htmlParts)
-
-            if (isRedirect(htmlParts)) {
-                return res.end()
+            try {
+                template = await this.server.transformIndexHtml(req.originalUrl, this.getIndexHtmlTemplate(entryPoint))
+            } catch (error) {
+                return next(error)
             }
 
-            res.setHeader('Content-Type', 'text/html')
-            res.end(buildHtml(template, htmlParts))
-        } catch (error) {
-            // Send back template HTML to inject ViteErrorOverlay
-            res.setHeader('Content-Type', 'text/html')
-            res.end(template)
+            try {
+                let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
+                resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
+
+                const render = resolvedEntryPoint.render || resolvedEntryPoint
+
+                const protocol =
+                    req.protocol ||
+                    (req.headers.referer || '').split(':')[0] ||
+                    'http'
+
+                const url = protocol + '://' + req.headers.host + req.originalUrl
+
+                this.writeHead(res, context)
+
+                if (isRedirect(context)) {
+                    return res.end()
+                }
+
+                const htmlParts = await render(url, { request: req, response: res, ...context })
+
+                this.writeHead(res, htmlParts)
+
+                if (isRedirect(htmlParts)) {
+                    return res.end()
+                }
+
+                res.setHeader('Content-Type', 'text/html')
+                res.end(buildHtml(template, htmlParts))
+            } catch (error) {
+                // Send back template HTML to inject ViteErrorOverlay
+                res.setHeader('Content-Type', 'text/html')
+                res.end(template)
+            }
         }
+    }
+
+    compile = (filePath, code) => {
+        return transform(code, {
+            transforms: ['typescript', 'jsx', 'imports'],
+            filePath
+        }).code
+    }
+
+    serveStaticServerClass = async (_instance) => {
+        return await new CacheObject("_appFile_tmp.jsx").write(buildReactEntry(_instance))
     }
 
     initialize = async () => {
@@ -185,22 +265,24 @@ class EviteServer {
             throw new Error(`No entry provided`)
         }
 
-        // process entry point
-        const entry = transform(fs.readFileSync(this.entry).toString(), {
-            transforms: ["jsx", "imports"],
-            jsxPragma: "React.createElement",
-            jsxFragmentPragma: "React.Fragment",
-            filePath: this.entry
-        })
+        const entryExists = fs.existsSync(this.entry)
+        const entryIsFile = entryExists && fs.statSync(this.entry).isFile() ? true : false
 
-        console.log(entry)
+        if (!entryExists && !entryIsFile) {
+            throw new Error(`Entry not valid`)
+        }
 
+        // try to compile
+        const code = await this.compile(this.entry, fs.readFileSync(this.entry, "utf-8"))
+
+        const _app = await this.serveStaticServerClass(moduleFromString(code, this.entry))
+
+        const handler = this.createHandleRequest(_app.output)
         const basePort = this.config.server.port
-        const handler = this.handleRequest
         process.env.__DEV_MODE_SSR = 'true'
 
         // TODO: initialize evite extensions
-            // TODO: overrideBeforeConfig
+        // TODO: overrideBeforeConfig
 
         this.externalizeBuiltInModules()
         this.config.server.middlewareMode = 'ssr'
