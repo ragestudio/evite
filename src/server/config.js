@@ -10,12 +10,7 @@ const BaseOverride = {
         }),
     ],
     build: {
-        outDir: global?.paths?.dist ?? "./dist",
         emptyOutDir: true,
-        rollupOptions: {},
-    },
-    optimizeDeps: {
-        auto: true,
     },
     server: {
         watch: {
