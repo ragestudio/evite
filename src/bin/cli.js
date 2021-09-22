@@ -1,23 +1,46 @@
 #!/usr/bin/env corenode-node
-
 const { Command, program } = require("commander")
-const { EviteServer } = require("../server/index.js")
+const { ReactEviteServer } = require("../server/index.js")
 
-const cliHandler = {
-    dev: async (entry) => {
-        let server = await new EviteServer({
-            entry
-        }).initialize()
-
-        await server.listen()
-    },
-    build: () => {
-        console.error("Build isn`t already available")
+const eviteServers = {
+    react: async (...context) => {
+        return await new ReactEviteServer(...context)
     }
 }
 
-const devCMD = new Command("dev", "Runs the development server").arguments("[entry]").action(cliHandler.dev)
-const buildCMD = new Command("build", "Build with vite").arguments("[entry]").action(cliHandler.build)
+const cliHandler = {
+    dev: async (entry, mode = "react", options) => {
+        const server = await eviteServers[mode]({
+            src: options.cwd,
+            entry: entry
+        })
+        const proxy = await server.initialize()
+        await proxy.listen()
+
+        console.log(`🌐  Listening on port ${server.config.server.port}`)
+
+    },
+    build: async (entry, mode = "react", options) => {
+        const server = await eviteServers[mode]({
+            src: options.cwd,
+            entry: entry
+        })
+
+        server.build()
+    }
+}
+
+const devCMD = new Command("dev", "Runs the development server")
+    .argument("[entry]")
+    .argument("[mode]", "Use provided as render framework", "react")
+    .option("--cwd <cwd>")
+    .action(cliHandler.dev)
+
+const buildCMD = new Command("build", "Build with vite")
+    .argument("[entry]")
+    .argument("[mode]", "Use provided as render framework", "react")
+    .option("--cwd <cwd>")
+    .action(cliHandler.build)
 
 program.addCommand(devCMD)
 program.addCommand(buildCMD)
