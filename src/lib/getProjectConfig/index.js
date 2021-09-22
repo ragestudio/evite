@@ -4,7 +4,7 @@ const { findUpSync } = require("corenode/filesystem")
 const { overrideObjects } = require("@corenode/utils")
 
 export default (config = {}, override) => {
-    const overridesFilepath = findUpSync(global.configFile ?? [".config.js", "evite.js",], { cwd: process.cwd() })
+    const overridesFilepath = findUpSync(global.configFile ?? [".config.js", ".eviterc.js",], { cwd: process.cwd() })
 
     // handle augmented overrides
     if (typeof override !== "undefined") {
