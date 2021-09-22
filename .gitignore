@@ -7,6 +7,9 @@
 # Trash
 /**/**/.crash.log
 /**/**/.tmp
+/**/**/.cache
+/**/**/out
+/**/**/.out
 /**/**/dist
 /**/**/node_modules
 /**/**/corenode_modules
@@ -20,4 +23,3 @@
 
 # Temporal configurations
 /**/**/.aliaser
-/**/**/.cache
