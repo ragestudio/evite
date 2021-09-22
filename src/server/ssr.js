@@ -82,7 +82,11 @@ module.exports = class SSRServer {
     }
 
     getConfig = () => {
-        return this.params.config ?? getProjectConfig(BaseConfiguration)
+        return {
+            ...BaseConfiguration,
+            ...getProjectConfig(),
+            ...this.params.config,
+        }
     }
 
     externalizeBuiltInModules = () => {
