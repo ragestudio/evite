@@ -1,14 +1,22 @@
-module.exports = function () {
-	this.initialize = () => {
-		console.log(this)
+import {createEviteApp, classAggregation} from "evite"
+import React from "react"
+
+export default class extends createEviteApp() {
+	state = {
+		count: 0,
 	}
 
-	this.render = () => {
-		return <div> 
-			{this.state.count}
-			<button onClick={() => {this.setState({ count: this.state.count+= 1})}}>
-				add count
-			</button>
-		</div>
+	render() {
+		return (
+			<div>
+				{this.state.count}
+				<button
+					onClick={() => {
+						this.setState({count: (this.state.count += 1)})
+					}}>
+					add count
+				</button>
+			</div>
+		)
 	}
 }
