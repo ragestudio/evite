@@ -1,4 +1,4 @@
-import {createEviteApp, classAggregation} from "evite"
+import {createEviteApp} from "evite"
 import React from "react"
 
 export default class extends createEviteApp() {
