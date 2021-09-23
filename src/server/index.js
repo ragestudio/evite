@@ -21,7 +21,14 @@ class ReactEviteServer extends SSRServer {
         }
 
         // write build files
-        const serverTemplate = typeof this.config.entryScript !== "undefined" ? fs.readFileSync(this.config.entryScript, "utf8") : await buildReactServerTemplate(`./${path.basename(this.entry)}`)
+        let template = null
+
+        if (typeof this.config.entryScript !== "undefined") {
+            template = fs.readFileSync(this.config.entryScript, "utf8")
+        } else {
+            template = buildReactTemplate({ main: `./${path.basename(this.entry)}` })
+        }
+
         const indexHtml = this.getIndexHtmlTemplate("./main.jsx")
 
         fs.mkdirSync(buildPath, { recursive: true })
@@ -31,7 +38,7 @@ class ReactEviteServer extends SSRServer {
         fse.copySync(this.src, buildPath)
 
         // write project main files
-        fs.writeFileSync(path.resolve(buildPath, "main.jsx"), serverTemplate)
+        fs.writeFileSync(path.resolve(buildPath, "main.jsx"), template)
         fs.writeFileSync(path.resolve(buildPath, "index.html"), indexHtml)
 
         // dispatch to vite.build
