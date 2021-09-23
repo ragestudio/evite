@@ -1,19 +1,23 @@
-module.exports = (main) => {
-  return `import React from 'react'
-import { BrowserRouter } from "react-router-dom";
-import ReactDOM from "react-dom"
-import _mainModule from "${main}"
+const { TemplateGenerator } = require("../../lib")
 
-const __main__app = () => {
-  return <React.StrictMode>
-    <BrowserRouter>
-      <_mainModule />
-    </BrowserRouter>
-  </React.StrictMode>
-}
+module.exports = (params = {}) => {
+  if (!params.main) {
+    throw new Error(`Missing MainModule`)
+  }
 
-function __createRender() {
-   ReactDOM.render(<__main__app/>, document.querySelector("#root"))
+  const template = new TemplateGenerator()
+
+  // append basics of react
+  template.appendImport("React", "react")
+  template.appendImport("ReactDOM", "react-dom")
+  template.appendImport("{ BrowserRouter }", "react-router-dom")
+
+  // import main 
+  template.appendImport("__MainModule", params.main)
+
+  template.appendConstable("__Main", `() => { return <BrowserRouter> <__MainModule /> </BrowserRouter> }`)
+  template.appendFunction("__createRender", undefined, `return ReactDOM.render(<__Main />, document.getElementById("root"))`)
+  template.appendCall("__createRender")
+
+  return template.construct()
 }
-    
-__createRender()`}

@@ -5,7 +5,7 @@ const rimraf = require("rimraf")
 const fse = require('fs-extra')
 
 const { CacheObject } = require("../lib")
-const buildReactServerTemplate = require("./renderers/react")
+const buildReactTemplate = require("./renderers/react")
 const SSRServer = require("./ssr.js")
 
 class ReactEviteServer extends SSRServer {
@@ -62,9 +62,15 @@ class ReactEviteServer extends SSRServer {
             throw new Error(`Entry not valid`)
         }
 
-        const serverTemplate = typeof this.config.entryScript !== "undefined" ? fs.readFileSync(this.config.entryScript, "utf8") : await buildReactServerTemplate(this.entry)
+        let template = null
 
-        const _mainEntry = await new CacheObject("_serverModule.jsx").write(serverTemplate)
+        if (typeof this.config.entryScript !== "undefined") {
+            template = fs.readFileSync(this.config.entryScript, "utf8")
+        } else {
+            template = buildReactTemplate({ main: this.entry })
+        }
+
+        const _mainEntry = await new CacheObject("__template.jsx").write(template)
         const _mainHandler = await this.createHandleRequest(_mainEntry.output)
 
         await this.externalizeBuiltInModules()
