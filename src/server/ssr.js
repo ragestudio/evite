@@ -50,7 +50,7 @@ module.exports = class SSRServer {
             ...this.params.aliases,
         }
 
-        this.src = this.params.src ?? path.resolve(gbaseCwd, "src")
+        this.src = this.params.src ?? path.resolve(baseCwd, "src")
 
         this.config = this.overrideWithDefaultContext(this.getConfig())
 
