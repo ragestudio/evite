@@ -50,28 +50,29 @@ module.exports = class SSRServer {
             ...this.params.aliases,
         }
 
-        this.src = this.params.src ?? path.resolve(baseCwd, "src")
-        
+        this.src = this.params.src ?? path.resolve(gbaseCwd, "src")
+
         this.config = this.overrideWithDefaultContext(this.getConfig())
-        
+
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
         this.externals = ["path", "fs"]
 
         this.config.server.middlewareMode = 'ssr'
         process.env.__DEV_MODE_SSR = 'true'
-        
+
         return this
     }
 
     overrideWithDefaultContext = (config) => {
         config.define = {
-            global: {
-                _versions: process.versions,
-                _eviteVersion: thisPkg.version,
-                project: global.project,
+            evite: {
+                versions: process.versions,
+                eviteVersion: thisPkg.version,
+                projectVersion: process.runtime.helpers.getVersion(),
+                corenodeVersion: process.runtime.helpers.getVersion({ engine: true }),
                 aliases: BaseAliases,
+                env: process.env,
             },
-            "process.env": process.env,
             _env: process.env,
         }
 
