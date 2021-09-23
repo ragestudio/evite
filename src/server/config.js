@@ -1,8 +1,7 @@
 const path = require("path")
 const selfSourceGlob = `${path.resolve(__dirname, "..")}/**/**`
-const { overrideObjects } = require("@corenode/utils")
 
-const BaseOverride = {
+const BaseConfig = {
     plugins: [
         require("@vitejs/plugin-react-refresh"),
         require("@rollup/plugin-node-resolve").default({
@@ -26,56 +25,30 @@ const BaseOverride = {
     },
 }
 
-const Schema = {
-    configFile: { value: false }, // TODO: lock value
-    aliases: { default: Array() },
-    plugins: { default: Array() },
-    build: { default: Object() },
-    optimizeDeps: { default: Object() },
-    server: { default: Object() },
-}
-
-class BaseConfigurationController {
+class ConfigController {
     constructor(override) {
-        this.schemaKeys = Object.keys(Schema)
-        this.base = this.construct()
+        this.config = BaseConfig ?? Object()
 
         if (typeof override !== "undefined") {
-            this.base = overrideObjects(this.base, override)
+            this.mutate(override)
         }
 
-        return this.base
+        return this
     }
 
-    construct = () => {
-        const obj = Object()
-
-        this.schemaKeys.forEach((key) => {
-            const item = Schema[key]
-
-            if (typeof item.value !== "undefined") {
-                return obj[key] = item.value
-            }
-
-            if (typeof item.default !== "undefined") {
-                return obj[key] = item.default
-            }
-        })
-
-        return obj
+    static get config() {
+        return BaseConfig
     }
 
     mutate = (mutation, ...context) => {
         if (typeof mutation === "function") {
-            const result = mutation(this.base, ...context)
-            this.base = { ...result }
+            const result = mutation(this.config, ...context)
+            this.config = { ...result }
         }
     }
 }
 
 module.exports = {
-    BaseConfiguration: new BaseConfigurationController(BaseOverride),
-    BaseConfigurationController,
-    BaseOverride,
-    Schema
+    ConfigController,
+    BaseConfig,
 }

@@ -40,7 +40,7 @@ const BaseAliases = global.BaseAliases = {
     ...SourceAliases
 }
 
-const BaseConfiguration = global.BaseConfiguration = require("./config.js").BaseConfiguration
+const { ConfigController } = require("./config.js")
 
 module.exports = class SSRServer {
     constructor(params) {
@@ -53,6 +53,7 @@ module.exports = class SSRServer {
         this.src = this.params.src ?? path.resolve(baseCwd, "src")
         
         this.config = this.overrideWithDefaultContext(this.getConfig())
+        
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
         this.externals = ["path", "fs"]
 
@@ -83,7 +84,7 @@ module.exports = class SSRServer {
 
     getConfig = () => {
         return {
-            ...BaseConfiguration,
+            ...ConfigController.config,
             ...getProjectConfig(),
             ...this.params.config,
         }
