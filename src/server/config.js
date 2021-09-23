@@ -23,6 +23,8 @@ const BaseConfig = {
             allow: [".."]
         },
     },
+    define: Object(),
+    resolve: Object()
 }
 
 class ConfigController {

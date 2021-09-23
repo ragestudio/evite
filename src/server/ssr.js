@@ -75,6 +75,11 @@ module.exports = class SSRServer {
             _env: process.env,
         }
 
+        config = {
+            ...getProjectConfig(config),
+            ...config
+        }
+
         return config
     }
 
@@ -85,8 +90,7 @@ module.exports = class SSRServer {
     getConfig = () => {
         return {
             ...ConfigController.config,
-            ...getProjectConfig(),
-            ...this.params.config,
+            ...this.params.config
         }
     }
 
