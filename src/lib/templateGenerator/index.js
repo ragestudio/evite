@@ -47,7 +47,23 @@ export default class TemplateGenerator {
     }
 
     appendCall = (call, args) => {
-        this.calls.push({ call, args })
+        function getArguments() {
+            if (typeof args === "undefined") {
+                return undefined
+            }
+
+            let _args = []
+
+            if (Array.isArray(args)) {
+                _args = args
+            } else {
+                _args.push(args)
+            }
+
+            return _args.join(', ')
+        }
+
+        this.calls.push({ call, arguments: getArguments() })
     }
 
     appendLine = (line) => {
@@ -71,13 +87,13 @@ export default class TemplateGenerator {
             if (entry.options?.arrow) {
                 return `function ${entry.key}(...context){\n\tlet _ = ${entry.fn};\n\t_ = _.bind(this);\n\t_(...context)\n};`
             }
-            return `function ${entry.key}(${entry.args ?? ""}){\n\t${entry.fn}\n};`
+            return `function ${entry.key}(${entry.arguments ?? ""}){\n\t${entry.fn}\n};`
         })
     }
 
     generateCalls = () => {
         return this.calls.map((entry) => {
-            return `${entry.call.toString()}(${entry.args ?? ""})`
+            return `${entry.call.toString()}(${entry.arguments ?? ""});`
         })
     }
 
