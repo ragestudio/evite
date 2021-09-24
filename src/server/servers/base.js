@@ -6,6 +6,7 @@ const { EventEmitter } = require("events")
 const { getProjectConfig } = require("../../lib")
 const { ConfigController } = require("../config.js")
 const { getDefaultAliases } = require("../aliases.js")
+const { getDefaultPlugins } = require("../plugins.js")
 
 class DevelopmentServer {
     constructor(params) {
@@ -16,10 +17,11 @@ class DevelopmentServer {
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
 
         this.config = this.overrideWithDefaultConfig()
+        this.config = this.overrideWithDefaultPlugins(this.config)
         this.config = this.overrideWithDefaultAliases(this.config)
         this.config = this.overrideWithEviteContextNamespace(this.config)
         this.config = this.overrideWithProjectConfig(this.config)
-        
+
         this.listenPort = this.config.server.port ?? 8000
 
         this.events = new EventEmitter()
@@ -41,6 +43,22 @@ class DevelopmentServer {
         return config
     }
 
+    overrideWithDefaultPlugins = (config = {}) => {
+        if (typeof config.plugins === "undefined") {
+            config.plugins = Array()
+        }
+
+        const defaultPlugins = getDefaultPlugins()
+
+        if (Array.isArray(defaultPlugins)) {
+            defaultPlugins.forEach(plugin => {
+                config.plugins.push(plugin)
+            })
+        }
+
+        return config
+    }
+
     overrideWithDefaultAliases = (config = {}) => {
         if (typeof config.resolve === "undefined") {
             config.resolve = Object()
@@ -57,11 +75,11 @@ class DevelopmentServer {
     }
 
     overrideWithEviteContextNamespace = (config = {}) => {
-        if (typeof config.define === "undefined") {
-            config.define = Object()
+        if (typeof config.windowContext === "undefined") {
+            config.windowContext = Object()
         }
 
-        config.define.evite = {
+        config.windowContext.__evite = {
             versions: process.versions,
             eviteVersion: thisPkg.version,
             projectVersion: process.runtime.helpers.getVersion(),
@@ -72,7 +90,7 @@ class DevelopmentServer {
 
         return config
     }
-    
+
     overrideWithProjectConfig = (config = {}) => {
         config = {
             ...getProjectConfig(config),
@@ -83,9 +101,6 @@ class DevelopmentServer {
     }
 
     externalizeBuiltInModules = () => {
-        const commonjsExternalsPlugin = require("vite-plugin-commonjs-externals").default({
-            externals: this.externals
-        })
         const externalsPlugin = require("vite-plugin-externals").viteExternalsPlugin({
             "fast-glob": "fast-glob",
             "glob-parent": "glob-parent",
@@ -93,7 +108,7 @@ class DevelopmentServer {
             corenode: "corenode",
         })
 
-        this.config.plugins.push(commonjsExternalsPlugin, externalsPlugin)
+        this.config.plugins.push(externalsPlugin)
     }
 }
 
