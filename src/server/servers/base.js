@@ -16,10 +16,10 @@ class DevelopmentServer {
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
 
         this.config = this.overrideWithDefaultConfig()
-        this.config = this.overrideWithProjectConfig(this.config)
         this.config = this.overrideWithDefaultAliases(this.config)
         this.config = this.overrideWithEviteContextNamespace(this.config)
-
+        this.config = this.overrideWithProjectConfig(this.config)
+        
         this.listenPort = this.config.server.port ?? 8000
 
         this.events = new EventEmitter()
@@ -36,15 +36,6 @@ class DevelopmentServer {
         config = {
             ...ConfigController.config,
             ...this.params.config
-        }
-
-        return config
-    }
-
-    overrideWithProjectConfig = (config = {}) => {
-        config = {
-            ...getProjectConfig(config),
-            ...config
         }
 
         return config
@@ -77,6 +68,15 @@ class DevelopmentServer {
             corenodeVersion: process.runtime.helpers.getVersion({ engine: true }),
             env: process.env,
             aliases: config.resolve?.alias
+        }
+
+        return config
+    }
+    
+    overrideWithProjectConfig = (config = {}) => {
+        config = {
+            ...getProjectConfig(config),
+            ...config
         }
 
         return config
