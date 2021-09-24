@@ -10,23 +10,35 @@ export default class TemplateGenerator {
             calls: 3,
             lines: 4
         }
-   
-        this.imports = []
-        this.constables = []
-        this.functions = []
-        this.calls = []
-        this.lines = []
+
+        this.values = {
+            imports: [],
+            constables: [],
+            functions: [],
+            calls: [],
+            lines: []
+        }
+
+        return this
     }
 
-    appendConstable = (key, value) => {
-        this.constables.push({ key, value })
+    append(value, type) {
+        if (this.params.withOrder) {
+            this.values[type] = value
+        } else {
+            this.template.push(value + `\n`)
+        }
     }
 
-    appendImport = (key, from) => {
-        this.imports.push({ key, from })
+    constable = (key, value) => {
+        this.append(`const ${key} = ${value};`, "constables")
     }
 
-    appendFunction = (key, args, fn, options) => {
+    import = (key, from) => {
+        this.append(`import ${key} from '${from}';`, "imports")
+    }
+
+    function = (key, args, fn, options = {}) => {
         function getArguments() {
             if (typeof args === "undefined") {
                 return undefined
@@ -43,10 +55,16 @@ export default class TemplateGenerator {
             return _args.join(', ')
         }
 
-        this.functions.push({ key, arguments: getArguments(), fn, options })
+        if (options.arrow) {
+            fn = `function ${key}(...context){\n\tlet _ = ${fn};\n\t_ = _.bind(this);\n\t_(...context)\n};`
+        } else {
+            fn = `function ${key}(${getArguments() ?? ""}){\n\t${fn}\n};`
+        }
+
+        this.append(fn, "functions")
     }
 
-    appendCall = (call, args) => {
+    call = (call, args) => {
         function getArguments() {
             if (typeof args === "undefined") {
                 return undefined
@@ -63,61 +81,25 @@ export default class TemplateGenerator {
             return _args.join(', ')
         }
 
-        this.calls.push({ call, arguments: getArguments() })
+
+        this.append(`${call.toString()}(${getArguments() ?? ""});`, "calls")
     }
 
-    appendLine = (line) => {
-        this.lines.push(line)
-    }
-
-    generateImports = () => {
-        return this.imports.map((entry) => {
-            return `import ${entry.key} from '${entry.from}';`
-        })
-    }
-
-    generateConstables = () => {
-        return this.constables.map((entry) => {
-            return `const ${entry.key} = ${entry.value};`
-        })
-    }
-
-    generateFunctions = () => {
-        return this.functions.map((entry) => {
-            if (entry.options?.arrow) {
-                return `function ${entry.key}(...context){\n\tlet _ = ${entry.fn};\n\t_ = _.bind(this);\n\t_(...context)\n};`
-            }
-            return `function ${entry.key}(${entry.arguments ?? ""}){\n\t${entry.fn}\n};`
-        })
-    }
-
-    generateCalls = () => {
-        return this.calls.map((entry) => {
-            return `${entry.call.toString()}(${entry.arguments ?? ""});`
-        })
-    }
-
-    generateLines = () => {
-        return this.lines.map((line) => {
-            return line.toString()
-        })
+    line = (line) => {
+        this.append(line, "lines")
     }
 
     construct = () => {
         let buf = []
 
-        const content = {
-            imports: this.generateImports().join("\n"),
-            constables: this.generateConstables().join("\n"),
-            functions: this.generateFunctions().join("\n"),
-            calls: this.generateCalls().join("\n"),
-            lines: this.generateLines().join("\n")
+        if (this.params.withOrder) {
+            Object.keys(this.values).forEach((key) => {
+                const index = this.order[key]
+                buf[index] = this.values[key]
+            })
+        } else {
+            buf[0] = this.template.join(`\n`)
         }
-        
-        Object.keys(this.order).forEach((key) => {
-            const index = this.order[key]
-            buf[index] = content[key]
-        })
 
         return buf.join(`\n\n`)
     }
