@@ -1,5 +1,5 @@
-import {createEviteApp} from "evite"
 import React from "react"
+import {createEviteApp} from "evite"
 
 export default class ExampleApp extends createEviteApp() {
 	state = {
