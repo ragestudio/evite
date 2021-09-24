@@ -1,7 +1,8 @@
 import {createEviteApp} from "evite"
 import React from "react"
+import ReactDOM from "react-dom"
 
-export default class extends createEviteApp() {
+export default class ExampleApp extends createEviteApp() {
 	state = {
 		count: 0,
 	}
@@ -16,7 +17,11 @@ export default class extends createEviteApp() {
 					}}>
 					add count
 				</button>
+				<PageTest />
 			</div>
 		)
 	}
 }
+
+
+ReactDOM.render(<ExampleApp />, document.getElementById("root"))
