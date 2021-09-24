@@ -1,28 +1,36 @@
 #!/usr/bin/env corenode-node
 const { Command, program } = require("commander")
-const { ReactEviteServer } = require("../server/index.js")
+const { SSRReactServer, ViteDevelopmentServer } = require("../server/index.js")
 
 const eviteServers = {
-    react: async (...context) => {
-        return await new ReactEviteServer(...context)
+    "ssr-react": async (...context) => {
+        return await (new SSRReactServer(...context)).initialize()
+    },
+    "react": async (...context) => {
+        return await new ViteDevelopmentServer(...context)
     }
 }
 
 const cliHandler = {
-    dev: async (entry, mode = "react", options) => {
+    dev: async (entry, options) => {
+        const mode = options.mode ?? "react"
+
+        if (typeof eviteServers[mode] === "undefined") {
+            throw new Error(`Invalid mode: ${mode}`)
+        }
+
         const server = await eviteServers[mode]({
-            src: options.cwd,
+            src: options.src,
+            cwd: options.cwd,
             entry: entry
         })
-        const proxy = await server.initialize()
-        await proxy.listen()
-
-        console.log(`🌐  Listening on port ${server.config.server.port}`)
-
+        
+        await server.listen()
     },
-    build: async (entry, mode = "react", options) => {
-        const server = await eviteServers[mode]({
-            src: options.cwd,
+    build: async (entry, options) => {
+        const server = await eviteServers["ssr-react"]({
+            src: options.src,
+            cwd: options.cwd,
             entry: entry
         })
 
@@ -32,14 +40,16 @@ const cliHandler = {
 
 const devCMD = new Command("dev", "Runs the development server")
     .argument("[entry]")
-    .argument("[mode]", "Use provided as render framework", "react")
+    .option("--mode <mode>", "Use provided as render framework")
     .option("--cwd <cwd>")
+    .option("--src <src>")
     .action(cliHandler.dev)
 
 const buildCMD = new Command("build", "Build with vite")
     .argument("[entry]")
     .argument("[mode]", "Use provided as render framework", "react")
     .option("--cwd <cwd>")
+    .option("--src <src>")
     .action(cliHandler.build)
 
 program.addCommand(devCMD)
