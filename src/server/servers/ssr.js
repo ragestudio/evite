@@ -6,8 +6,6 @@ const fse = require('fs-extra')
 const express = require("express")
 
 const { DevelopmentServer } = require('./base.js')
-const { findUpSync } = require("corenode/filesystem")
-
 const { CacheObject } = require("../../lib")
 const buildReactTemplate = require("../renderers/react")
 
@@ -20,7 +18,29 @@ class SSRServer extends DevelopmentServer {
         this.config.server.middlewareMode = 'ssr'
         process.env.__DEV_MODE_SSR = 'true'
 
+        this.templateContext = Array()
         return this
+    }
+
+    getDefinitions = () => {
+        if (typeof this.config.windowContext === "object") {
+            let defs = []
+
+            Object.keys(this.config.windowContext).forEach(key => {
+                const value = JSON.stringify(this.config.windowContext[key])
+
+                defs.push(`window["${key}"] = ${value};`)
+            })
+
+            return `export default () => { ${defs.join("")} }`
+        }
+    }
+
+    compileDefinitions = () => {
+        const _definitions = await new CacheObject("__definitions.js").write(this.getDefinitions())
+
+        this.templateContext.push(`import __make__definitions from '${_definitions.output}';`)
+        this.templateContext.push(`__make__definitions();`)
     }
 
     getIndexHtmlTemplate = (mainScript) => {
@@ -125,7 +145,7 @@ class SSRServer extends DevelopmentServer {
                         target.use(handler)
                         const server = await target.listen(port)
                         events.emit("server_listen")
-                        
+
                         return server
                     }
                 }
@@ -150,14 +170,18 @@ class SSRReactServer extends SSRServer {
 
         // write build files
         let template = null
+        const templateContext = []
+
+        this.compileDefinitions()
+
 
         if (typeof this.config.entryScript !== "undefined") {
             template = await fs.readFileSync(this.config.entryScript, "utf8")
         } else {
-            template = buildReactTemplate({ main: `./${path.basename(this.entry)}` })
+            template = buildReactTemplate({ main: `./${path.basename(this.entry)}` }, this.templateContext)
         }
 
-        const indexHtml = this.getIndexHtmlTemplate("./main.jsx")
+        const indexHtml = this.getIndexHtmlTemplate("./index.jsx")
 
         fs.mkdirSync(buildPath, { recursive: true })
         fs.mkdirSync(outputPath, { recursive: true })
@@ -166,20 +190,20 @@ class SSRReactServer extends SSRServer {
         await fse.copySync(this.src, buildPath)
 
         // write project main files
-        fs.writeFileSync(path.resolve(buildPath, "main.jsx"), template)
-        fs.writeFileSync(path.resolve(buildPath, "index.html"), indexHtml)
+        await fs.writeFileSync(path.resolve(buildPath, "index.jsx"), template)
+        await fs.writeFileSync(path.resolve(buildPath, "index.html"), indexHtml)
 
         // dispatch to vite.build
+
         let builderConfig = {
             ...this.config,
             root: buildPath,
             build: {
                 ...this.config.build,
                 emptyOutDir: true,
-                outDir: outputPath
+                outDir: outputPath,
             },
         }
-        console.log(builderConfig)
 
         await vite.build(builderConfig)
 
@@ -201,10 +225,12 @@ class SSRReactServer extends SSRServer {
 
         let template = null
 
+        this.compileDefinitions()
+
         if (typeof this.config.entryScript !== "undefined") {
             template = fs.readFileSync(this.config.entryScript, "utf8")
         } else {
-            template = await buildReactTemplate({ main: this.entry })
+            template = await buildReactTemplate({ main: this.entry }, this.templateContext)
         }
 
         const _mainEntry = await new CacheObject("__template.jsx").write(template)
