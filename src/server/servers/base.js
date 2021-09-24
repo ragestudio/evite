@@ -20,7 +20,6 @@ class DevelopmentServer {
         this.config = this.overrideWithDefaultAliases(this.config)
         this.config = this.overrideWithEviteContextNamespace(this.config)
 
-        console.log(this.config)
         this.listenPort = this.config.server.port ?? 8000
 
         this.events = new EventEmitter()
@@ -38,7 +37,7 @@ class DevelopmentServer {
             ...ConfigController.config,
             ...this.params.config
         }
-        
+
         return config
     }
 
