@@ -1,5 +1,5 @@
 import config from 'config'
-import cloudlinkClient from "@ragestudio/cloudlink/dist/client"
+import client from "linebridge/client"
 
 export default {
     key: "apiBridge",
@@ -38,7 +38,7 @@ export default {
                         return context
                     }
 
-                    return cloudlinkClient
+                    return client
                         .createInterface(config.api.address, getContext)
                         .catch((err) => {
                             self.eventBus("api_connection_error", err)
