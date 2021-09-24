@@ -1,112 +1,26 @@
-const thisPkg = require("../package.json")
-
-const path = require("path")
 const fs = require("fs")
-
-const express = require("express")
+const path = require("path")
 const vite = require("vite")
+const rimraf = require("rimraf")
+const fse = require('fs-extra')
+const express = require("express")
 
+const { DevelopmentServer } = require('./base.js')
 const { findUpSync } = require("corenode/filesystem")
-const { getDefaultHtmlTemplate, getProjectConfig, buildHtml } = require("../lib")
 
-if (typeof global.paths === "undefined") {
-    global.paths = Object()
-}
+const { CacheObject } = require("../../lib")
+const buildReactTemplate = require("../renderers/react")
 
-const baseCwd = global.paths.base = process.cwd()
-const sourcePath = global.paths.source = path.resolve(baseCwd, "src")
+const { getDefaultHtmlTemplate, buildHtml } = require("../../lib")
 
-const CwdAliases = {
-    "$": baseCwd,
-    schemas: path.join(baseCwd, 'schemas'),
-    interface: path.join(baseCwd, 'interface'),
-    config: path.join(baseCwd, 'config'),
-}
-
-const SourceAliases = {
-    "@app": findUpSync([path.join(sourcePath, "App.js"), path.join(sourcePath, "App.jsx")]),
-    "@": sourcePath,
-    extensions: path.join(sourcePath, 'extensions'),
-    theme: path.join(sourcePath, 'theme'),
-    locales: path.join(sourcePath, 'locales'),
-    core: path.join(sourcePath, 'core'),
-    pages: path.join(sourcePath, 'pages'),
-    components: path.join(sourcePath, 'components'),
-    models: path.join(sourcePath, 'models'),
-}
-
-const BaseAliases = global.BaseAliases = {
-    ...CwdAliases,
-    ...SourceAliases
-}
-
-const { ConfigController } = require("./config.js")
-
-module.exports = class SSRServer {
+class SSRServer extends DevelopmentServer {
     constructor(params) {
-        this.params = { ...params }
-
-        this.aliases = {
-            ...this.params.aliases,
-        }
-
-        this.src = this.params.src ?? path.resolve(baseCwd, "src")
-
-        this.config = this.overrideWithDefaultContext(this.getConfig())
-
-        this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
-        this.externals = ["path", "fs"]
+        super(params)
 
         this.config.server.middlewareMode = 'ssr'
         process.env.__DEV_MODE_SSR = 'true'
 
         return this
-    }
-
-    overrideWithDefaultContext = (config) => {
-        config.define = {
-            evite: {
-                versions: process.versions,
-                eviteVersion: thisPkg.version,
-                projectVersion: process.runtime.helpers.getVersion(),
-                corenodeVersion: process.runtime.helpers.getVersion({ engine: true }),
-                aliases: BaseAliases,
-                env: process.env,
-            },
-            _env: process.env,
-        }
-
-        config = {
-            ...getProjectConfig(config),
-            ...config
-        }
-
-        return config
-    }
-
-    getAliases = () => {
-        return BaseAliases
-    }
-
-    getConfig = () => {
-        return {
-            ...ConfigController.config,
-            ...this.params.config
-        }
-    }
-
-    externalizeBuiltInModules = () => {
-        const commonjsExternalsPlugin = require("vite-plugin-commonjs-externals").default({
-            externals: this.externals
-        })
-        const externalsPlugin = require("vite-plugin-externals").viteExternalsPlugin({
-            "fast-glob": "fast-glob",
-            "glob-parent": "glob-parent",
-            "node": "node",
-            corenode: "corenode",
-        })
-
-        this.config.plugins.push(commonjsExternalsPlugin, externalsPlugin)
     }
 
     getIndexHtmlTemplate = (mainScript) => {
@@ -202,6 +116,7 @@ module.exports = class SSRServer {
         this.http.use(this.server.middlewares)
 
         const basePort = this.config.server.port
+        const events = this.events
 
         return new Proxy(this.http, {
             get(target, prop, receiver) {
@@ -209,7 +124,8 @@ module.exports = class SSRServer {
                     return async (port = basePort) => {
                         target.use(handler)
                         const server = await target.listen(port)
-
+                        events.emit("server_listen")
+                        
                         return server
                     }
                 }
@@ -218,4 +134,101 @@ module.exports = class SSRServer {
             },
         })
     }
+}
+
+class SSRReactServer extends SSRServer {
+    build = async () => {
+        const outputPath = typeof this.config.build.outDir !== "undefined" ? path.resolve(process.cwd(), this.config.build.outDir) : path.resolve(this.src, "..", "out")
+        const buildPath = path.resolve(process.cwd(), ".tmp")
+
+        if (fs.existsSync(outputPath)) {
+            await rimraf.sync(outputPath)
+        }
+        if (fs.existsSync(buildPath)) {
+            await rimraf.sync(buildPath)
+        }
+
+        // write build files
+        let template = null
+
+        if (typeof this.config.entryScript !== "undefined") {
+            template = await fs.readFileSync(this.config.entryScript, "utf8")
+        } else {
+            template = buildReactTemplate({ main: `./${path.basename(this.entry)}` })
+        }
+
+        const indexHtml = this.getIndexHtmlTemplate("./main.jsx")
+
+        fs.mkdirSync(buildPath, { recursive: true })
+        fs.mkdirSync(outputPath, { recursive: true })
+
+        // copy entire src folder to build folder
+        await fse.copySync(this.src, buildPath)
+
+        // write project main files
+        fs.writeFileSync(path.resolve(buildPath, "main.jsx"), template)
+        fs.writeFileSync(path.resolve(buildPath, "index.html"), indexHtml)
+
+        // dispatch to vite.build
+        let builderConfig = {
+            ...this.config,
+            root: buildPath,
+            build: {
+                ...this.config.build,
+                emptyOutDir: true,
+                outDir: outputPath
+            },
+        }
+        console.log(builderConfig)
+
+        await vite.build(builderConfig)
+
+        // clean up
+        await rimraf.sync(buildPath)
+    }
+
+    initialize = async () => {
+        if (!this.entry) {
+            throw new Error(`No entry provided`)
+        }
+
+        const entryExists = fs.existsSync(this.entry)
+        const entryIsFile = entryExists && fs.statSync(this.entry).isFile() ? true : false
+
+        if (!entryExists && !entryIsFile) {
+            throw new Error(`Entry not valid`)
+        }
+
+        let template = null
+
+        if (typeof this.config.entryScript !== "undefined") {
+            template = fs.readFileSync(this.config.entryScript, "utf8")
+        } else {
+            template = await buildReactTemplate({ main: this.entry })
+        }
+
+        const _mainEntry = await new CacheObject("__template.jsx").write(template)
+        const _mainHandler = await this.createHandleRequest(_mainEntry.output)
+
+        await this.externalizeBuiltInModules()
+
+        await new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve()
+            }, 200)
+        })
+
+        return await this.initializeProxyServer(_mainHandler)
+    }
+}
+
+async function createSSRReactServer(...context) {
+    const server = await new SSRReactServer(...context)
+    return await server.initialize()
+}
+
+module.exports = {
+    SSRServer,
+    SSRReactServer,
+    createSSRReactServer,
 }
