@@ -1,4 +1,3 @@
-const path = require('path')
 const vite = require('vite')
 const { DevelopmentServer } = require('./base')
 
@@ -15,12 +14,10 @@ class ViteDevelopmentServer extends DevelopmentServer {
     listen = async () => {
         const instanceConfig = {
             ...this.config,
-            root: path.dirname(this.entry),
+            root: this.cwd,
         }
 
-        console.log(instanceConfig)
-
-        return await (await vite.createServer(instanceConfig)).listen()
+        return (await vite.createServer(instanceConfig)).listen(instanceConfig.server.port)
     }
 }
 
