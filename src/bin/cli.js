@@ -24,11 +24,11 @@ const cliHandler = {
             cwd: options.cwd,
             entry: entry
         })
-        
+
         await server.listen()
     },
     build: async (entry, options) => {
-        const server = await eviteServers["ssr-react"]({
+        const server = new SSRReactServer({
             src: options.src,
             cwd: options.cwd,
             entry: entry
