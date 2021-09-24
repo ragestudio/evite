@@ -46,7 +46,7 @@ export function createRouter({ base, routes, PropsProvider, pagePropsOptions = {
 
                 if (!currentRoute) {
                     // First route, use provided initialState
-                    console.log("first route, PROVIDE INITIALSTATE")
+                    console.log("initialState")
                 }
 
                 currentRoute = to

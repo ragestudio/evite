@@ -170,6 +170,5 @@ export {
 
 export * as router from './router'
 export * as url from './url'
-export * as clientEntry from './clientEntry'
 
 export default createEviteApp
