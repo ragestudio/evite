@@ -17,7 +17,6 @@ export default class ExampleApp extends createEviteApp() {
 					}}>
 					add count
 				</button>
-				<PageTest />
 			</div>
 		)
 	}
