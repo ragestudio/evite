@@ -2,13 +2,11 @@ const path = require("path")
 const selfSourceGlob = `${path.resolve(__dirname, "..")}/**/**`
 
 const BaseConfig = {
-    plugins: [
-        require("@vitejs/plugin-react-refresh"),
-        require("@rollup/plugin-node-resolve").default({
-            browser: true,
-        }),
-    ],
+    plugins: Array(),
     build: {
+        sourcemap: false,
+        minify: "terser",
+        manifest: true,
         emptyOutDir: true,
     },
     server: {
@@ -23,7 +21,7 @@ const BaseConfig = {
             allow: [".."]
         },
     },
-    define: Object(),
+    windowContext: Object(),
     resolve: Object()
 }
 
