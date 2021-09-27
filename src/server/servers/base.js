@@ -1,9 +1,11 @@
 const thisPkg = require("../../package.json")
 
+const fs = require("fs")
 const path = require("path")
+
 const { findUpSync } = require("corenode/filesystem")
 const { EventEmitter } = require("events")
-const { getProjectConfig } = require("../../lib")
+const { getProjectConfig, compileIndexHtmlTemplate, CacheObject } = require("../../lib")
 const { ConfigController } = require("../config.js")
 const { getDefaultAliases } = require("../aliases.js")
 const { getDefaultPlugins } = require("../plugins.js")
@@ -30,6 +32,7 @@ class DevelopmentServer {
         })
 
         this.externals = ["path", "fs"]
+        this.templateContext = Array()
 
         return this
     }
@@ -105,10 +108,51 @@ class DevelopmentServer {
             "fast-glob": "fast-glob",
             "glob-parent": "glob-parent",
             "node": "node",
+            "os": "os",
             corenode: "corenode",
         })
 
         this.config.plugins.push(externalsPlugin)
+    }
+
+    getDefinitions = () => {
+        if (typeof this.config.windowContext === "object") {
+            let defs = []
+
+            Object.keys(this.config.windowContext).forEach(key => {
+                const value = JSON.stringify(this.config.windowContext[key])
+
+                defs.push(`window["${key}"] = ${value};`)
+            })
+
+            return `export default () => { ${defs.join("")} }`
+        }
+    }
+
+    compileDefinitions = async () => {
+        let template = []
+
+        const _definitions = await new CacheObject("__definitions.js").write(this.getDefinitions())
+
+        template.push(`import __make__definitions from '${_definitions.output}';`)
+        template.push(`__make__definitions();`)
+
+        return template.join("\n")
+    }
+
+    getIndexHtmlTemplate = (mainScript) => {
+        let template = null
+
+        const customHtmlTemplate = this.params.htmlTemplate ?? process.env.htmlTemplate ?? path.resolve(process.cwd(), "index.html")
+
+        if (fs.existsSync(customHtmlTemplate)) {
+            template = fs.readFileSync(customHtmlTemplate, "utf-8")
+        } else {
+            // create new entry client from default and writes
+            template = compileIndexHtmlTemplate(mainScript)
+        }
+
+        return template
     }
 }
 
