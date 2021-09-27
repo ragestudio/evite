@@ -2,6 +2,8 @@ import {createEviteApp} from "evite"
 import React from "react"
 import ReactDOM from "react-dom"
 
+import "./index.less"
+
 export default class ExampleApp extends createEviteApp() {
 	state = {
 		count: 0,
