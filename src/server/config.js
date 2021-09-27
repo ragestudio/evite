@@ -2,6 +2,7 @@ const path = require("path")
 const selfSourceGlob = `${path.resolve(__dirname, "..")}/**/**`
 
 const BaseConfig = {
+    configFile: false,
     plugins: Array(),
     build: {
         sourcemap: false,
@@ -21,8 +22,11 @@ const BaseConfig = {
             allow: [".."]
         },
     },
+    optimizeDeps: {
+        auto: true,
+    },
     windowContext: Object(),
-    resolve: Object()
+    resolve: Object(),
 }
 
 class ConfigController {
