@@ -1,11 +1,11 @@
-const { TemplateGenerator } = require("../../lib")
+const { compileTemplate } = require("../../lib")
 
 module.exports = (params = {}, context) => {
   if (!params.main) {
     throw new Error(`Missing MainModule`)
   }
 
-  const template = new TemplateGenerator()
+  const template = new compileTemplate()
 
   // support context injection
   if (Array.isArray(context)) {
