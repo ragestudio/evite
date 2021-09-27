@@ -36,7 +36,7 @@ class SSRServer extends DevelopmentServer {
         }
     }
 
-    compileDefinitions = () => {
+    compileDefinitions = async () => {
         const _definitions = await new CacheObject("__definitions.js").write(this.getDefinitions())
 
         this.templateContext.push(`import __make__definitions from '${_definitions.output}';`)
@@ -170,7 +170,6 @@ class SSRReactServer extends SSRServer {
 
         // write build files
         let template = null
-        const templateContext = []
 
         this.compileDefinitions()
 
