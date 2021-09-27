@@ -1,8 +1,6 @@
 import React from "react"
 import {createEviteApp} from "evite"
 
-import style from "./index.less"
-
 export default class ExampleApp extends createEviteApp() {
 	state = {
 		count: 0,
