@@ -11,13 +11,15 @@ class ViteDevelopmentServer extends DevelopmentServer {
         return this
     }
 
-    listen = async () => {
+    initialize = async () => {
+        await this.compileDefinitions()
+
         const instanceConfig = {
             ...this.config,
             root: this.cwd,
         }
 
-        return (await vite.createServer(instanceConfig)).listen(instanceConfig.server.port)
+        return await vite.createServer(instanceConfig)
     }
 }
 
