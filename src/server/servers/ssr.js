@@ -171,8 +171,7 @@ class SSRReactServer extends SSRServer {
         // write build files
         let template = null
 
-        this.compileDefinitions()
-
+        await this.compileDefinitions()
 
         if (typeof this.config.entryScript !== "undefined") {
             template = await fs.readFileSync(this.config.entryScript, "utf8")
@@ -224,7 +223,7 @@ class SSRReactServer extends SSRServer {
 
         let template = null
 
-        this.compileDefinitions()
+        await this.compileDefinitions()
 
         if (typeof this.config.entryScript !== "undefined") {
             template = fs.readFileSync(this.config.entryScript, "utf8")
