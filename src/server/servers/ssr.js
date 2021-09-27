@@ -236,12 +236,6 @@ class SSRReactServer extends SSRServer {
 
         await this.externalizeBuiltInModules()
 
-        await new Promise((resolve, reject) => {
-            setTimeout(() => {
-                resolve()
-            }, 200)
-        })
-
         return await this.initializeProxyServer(_mainHandler)
     }
 }
