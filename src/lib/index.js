@@ -1,5 +1,5 @@
 export { default as getProjectConfig } from './getProjectConfig'
 export { default as CacheObject } from './cache'
-export { default as getDefaultHtmlTemplate } from './getDefaultHtmlTemplate'
 export { default as buildHtml } from './buildHtml'
-export { default as TemplateGenerator } from './templateGenerator'
+export { default as compileIndexHtmlTemplate } from './compileIndexHtmlTemplate'
+export { default as compileTemplate } from './compileTemplate'
