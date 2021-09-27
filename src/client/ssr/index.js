@@ -2,7 +2,7 @@ import React, { createContext as reactCreateContext, useContext as reactUseConte
 import ReactDOM from "react-dom"
 import { BrowserRouter, useHistory } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
-
+import { deserializeState } from "../state"
 import { withoutSuffix } from '../url'
 import { useClientRedirect, createRouter } from '../router'
 
@@ -25,20 +25,26 @@ export const createClientEntry = async function (
         PropsProvider,
         pageProps,
         debug = {},
+        transformState = deserializeState,
         styleCollector,
     },
     hook,
 ) {
     const url = window.location
     const routeBase = base && withoutSuffix(base({ url }), "/")
+    const initialState = await transformState(
+        window.__INITIAL_STATE__ || null,
+        deserializeState
+    )
 
-    const { redirect, writeResponse } = useClientRedirect(location => {
+    const { redirect, writeResponse } = useClientRedirect((location) => {
         const { push } = useHistory()
         React.useEffect(() => push(location), [push])
     })
 
     const context = {
         url,
+        initialState: initialState || {},
         isClient: true,
         redirect,
         writeResponse,
