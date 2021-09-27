@@ -7,7 +7,7 @@ const eviteServers = {
         return await (new SSRReactServer(...context)).initialize()
     },
     "react": async (...context) => {
-        return await new ViteDevelopmentServer(...context)
+        return await new ViteDevelopmentServer(...context).initialize()
     }
 }
 
