@@ -3,59 +3,93 @@ const path = require("path")
 const vite = require("vite")
 const rimraf = require("rimraf")
 const fse = require('fs-extra')
-const express = require("express")
+const chalk = require("chalk")
 
 const { DevelopmentServer } = require('./base.js')
-const { CacheObject } = require("../../lib")
+const { buildHtml, compileTemplate } = require("../../lib")
 const buildReactTemplate = require("../renderers/react")
 
-const { getDefaultHtmlTemplate, buildHtml } = require("../../lib")
+function ansiRegex({ onlyFirst = false } = {}) {
+    const pattern = [
+        '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+        '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))'
+    ].join('|');
+
+    return new RegExp(pattern, onlyFirst ? undefined : 'g');
+}
+
+function strip(string) {
+    if (typeof string !== 'string') {
+        throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
+    }
+
+    return string.replace(ansiRegex(), '');
+}
+
+
+const splitRE = /\r?\n/
+
+function pad(source, n = 2) {
+    const lines = source.split(splitRE)
+    return lines.map((l) => ` `.repeat(n) + l).join(`\n`)
+}
 
 class SSRServer extends DevelopmentServer {
     constructor(params) {
         super(params)
 
-        this.config.server.middlewareMode = 'ssr'
+        //this.config.server.middlewareMode = 'ssr'
         process.env.__DEV_MODE_SSR = 'true'
 
-        this.templateContext = Array()
         return this
     }
 
-    getDefinitions = () => {
-        if (typeof this.config.windowContext === "object") {
-            let defs = []
+    logServerError = (error, server = this.server) => {
+        server.ssrFixStacktrace(error)
 
-            Object.keys(this.config.windowContext).forEach(key => {
-                const value = JSON.stringify(this.config.windowContext[key])
+        const msg = this.buildErrorMessage(error, [
+            chalk.red(`Internal server error: ${error.message}`),
+        ])
 
-                defs.push(`window["${key}"] = ${value};`)
-            })
+        server.config.logger.error(msg, {
+            clear: true,
+            timestamp: true,
+            error,
+        })
 
-            return `export default () => { ${defs.join("")} }`
+        const sendError = () => server.ws.send({ type: 'error', err: this.prepareError(error) })
+
+        // Wait until browser injects ViteErrorOverlay custom element
+        setTimeout(sendError, 100)
+        setTimeout(sendError, 250)
+    }
+
+    prepareError = (err) => {
+        return {
+            message: strip(err.message),
+            stack: strip(this.cleanStack(err.stack || '')),
+            id: (err).id,
+            frame: strip((err).frame || ''),
+            plugin: (err).plugin,
+            pluginCode: (err).pluginCode,
+            loc: (err).loc,
         }
     }
 
-    compileDefinitions = async () => {
-        const _definitions = await new CacheObject("__definitions.js").write(this.getDefinitions())
+    buildErrorMessage = (err, args = [], includeStack = true) => {
+        if (err.plugin) args.push(`  Plugin: ${chalk.magenta(err.plugin)}`)
+        if (err.id) args.push(`  File: ${chalk.cyan(err.id)}`)
+        if (err.frame) args.push(chalk.yellow(pad(err.frame)))
+        if (includeStack && err.stack) args.push(pad(this.cleanStack(err.stack)))
 
-        this.templateContext.push(`import __make__definitions from '${_definitions.output}';`)
-        this.templateContext.push(`__make__definitions();`)
+        return args.join('\n')
     }
 
-    getIndexHtmlTemplate = (mainScript) => {
-        let template = null
-
-        const customHtmlTemplate = this.params.htmlTemplate ?? process.env.htmlTemplate ?? path.resolve(process.cwd(), "index.html")
-
-        if (fs.existsSync(customHtmlTemplate)) {
-            template = fs.readFileSync(customHtmlTemplate, "utf-8")
-        } else {
-            // create new entry client from default and writes
-            template = getDefaultHtmlTemplate(mainScript)
-        }
-
-        return template
+    cleanStack = (stack) => {
+        return stack
+            .split(/\n/g)
+            .filter((l) => /^\s*at/.test(l))
+            .join('\n')
     }
 
     writeHead = (response, params = {}) => {
@@ -74,49 +108,38 @@ class SSRServer extends DevelopmentServer {
         }
     }
 
-    createHandleRequest = (entryPoint) => {
-        if (typeof entryPoint === "undefined") {
-            throw new Error("entryPoint is not provided")
-        }
-
+    createHandleRequest = (entries = {}, context) => {
         return async (req, res, next) => {
             if (req.method !== 'GET' || req.originalUrl === '/favicon.ico') {
                 return next()
             }
 
             const isRedirect = ({ status = 0 } = {}) => status >= 300 && status < 400
-            let template
+            const protocol = req.protocol || (req.headers.referer || '').split(':')[0] || 'http'
+            const url = protocol + '://' + req.headers.host + req.originalUrl
+
+            let template = null
 
             try {
-                template = await this.server.transformIndexHtml(req.originalUrl, this.getIndexHtmlTemplate(entryPoint))
+                template = this.getIndexHtmlTemplate(entries.client)
+                template = await this.server.transformIndexHtml(req.originalUrl, template)
             } catch (error) {
+                this.logServerError(error)
                 return next(error)
             }
 
             try {
-                let resolvedEntryPoint = await this.server.ssrLoadModule(entryPoint)
-                resolvedEntryPoint = resolvedEntryPoint.default || resolvedEntryPoint
+                // load server entry
+                let server = await this.server.ssrLoadModule(entries.server)
+                server = server.default ?? server
 
-                const render = resolvedEntryPoint.render || resolvedEntryPoint
+                let render = server.render ?? server
 
-                const protocol =
-                    req.protocol ||
-                    (req.headers.referer || '').split(':')[0] ||
-                    'http'
-
-                const url = protocol + '://' + req.headers.host + req.originalUrl
-
-                this.writeHead(res, context)
-
-                if (isRedirect(context)) {
-                    return res.end()
-                }
-
-                const htmlParts = await render(url, { request: req, response: res, ...context })
+                const htmlParts = await render && await render(url, { request: req, response: res, ...context })
 
                 this.writeHead(res, htmlParts)
 
-                if (isRedirect(htmlParts)) {
+                if (isRedirect(req)) {
                     return res.end()
                 }
 
@@ -126,33 +149,9 @@ class SSRServer extends DevelopmentServer {
                 // Send back template HTML to inject ViteErrorOverlay
                 res.setHeader('Content-Type', 'text/html')
                 res.end(template)
+                this.logServerError(error)
             }
         }
-    }
-
-    initializeProxyServer = async (handler) => {
-        this.http = express()
-        this.server = await vite.createServer(this.config)
-        this.http.use(this.server.middlewares)
-
-        const basePort = this.config.server.port
-        const events = this.events
-
-        return new Proxy(this.http, {
-            get(target, prop, receiver) {
-                if (prop === 'listen') {
-                    return async (port = basePort) => {
-                        target.use(handler)
-                        const server = await target.listen(port)
-                        events.emit("server_listen")
-
-                        return server
-                    }
-                }
-
-                return Reflect.get(target, prop, receiver)
-            },
-        })
     }
 }
 
@@ -209,7 +208,7 @@ class SSRReactServer extends SSRServer {
         await rimraf.sync(buildPath)
     }
 
-    initialize = async () => {
+    compile = async () => {
         if (!this.entry) {
             throw new Error(`No entry provided`)
         }
@@ -221,22 +220,97 @@ class SSRReactServer extends SSRServer {
             throw new Error(`Entry not valid`)
         }
 
-        let template = null
+        // fix definitions
+        const definitions = await this.compileDefinitions()
 
-        await this.compileDefinitions()
+        // create and build templates
+        this.serverTemplate = new compileTemplate({ locate: "__server.jsx" })
+        this.clientTemplate = new compileTemplate({ locate: "__client.jsx" })
 
-        if (typeof this.config.entryScript !== "undefined") {
-            template = fs.readFileSync(this.config.entryScript, "utf8")
+        //* client
+        this.clientTemplate.import("React", "react")
+        this.clientTemplate.import("ReactDOM", "react-dom")
+        this.clientTemplate.import("{ BrowserRouter }", "react-router-dom")
+        this.clientTemplate.import("__MainModule", this.entry)
+
+        this.clientTemplate.line(`console.log("LOADED CLIENT")`)
+
+        this.clientTemplate.constable("__ssrRender", `ReactDOM.hydrate(<BrowserRouter><__MainModule /></BrowserRouter>, document.getElementById('root'))`)
+
+        this.clientTemplate.call("__ssrRender")
+
+        this.clientTemplate.write()
+
+        //* server
+        // load definitions context (fix window definitions context)
+        this.clientTemplate.line(definitions)
+
+        this.serverTemplate.import("React", "react")
+        this.serverTemplate.import("{ createClientEntry }", "evite/client/ssr")
+        this.serverTemplate.import("__MainModule", this.entry)
+
+        //load routes
+        //TODO: watch routes
+        this.loadRoutes()
+
+        // watch and handle load routes
+        this.serverTemplate.line("export default createClientEntry(__MainModule, { routes }, ({ url, isClient, request }) => { console.log(url, isClient, request)})")
+        this.serverTemplate.write()
+
+        // set development watcher events
+        this.events.on("load_routes", this.loadRoutes)
+
+        return { client: this.clientTemplate.file.output, server: this.serverTemplate.file.output }
+    }
+
+    initialize = async (initialContext = {}) => {
+        const entries = this.compile()
+        const handler = await this.createHandleRequest(entries, initialContext)
+
+        this.config.plugins.push({
+            async configureServer(server) {
+                return () => server.middlewares.use(handler)
+            }
+        })
+
+        const events = this.events
+
+        this.server = await vite.createServer(this.config)
+
+        return new Proxy(this.server, {
+            get(target, prop, receiver) {
+                if (prop === 'listen') {
+                    return async (port) => {
+                        const server = await target.listen(port)
+                        events.emit("server_listen")
+                        target.config.logger.info('\n -- SSR mode\n')
+                        return server
+                    }
+                }
+
+                return Reflect.get(target, prop, receiver)
+            },
+        })
+    }
+
+    loadRoutes = () => {
+        const routerPointer = this.serverTemplate.getPointer("routes")
+        const routes = this.getRoutes()
+
+        if (typeof routerPointer !== "undefined") {
+            routerPointer.update = routes
         } else {
-            template = await buildReactTemplate({ main: this.entry }, this.templateContext)
+            this.serverTemplate.constable("routes", routes, { objected: true })
         }
 
-        const _mainEntry = await new CacheObject("__template.jsx").write(template)
-        const _mainHandler = await this.createHandleRequest(_mainEntry.output)
+        this.serverTemplate.write()
+    }
 
-        await this.externalizeBuiltInModules()
+    getRoutes = () => {
+        //TODO: read routes from file
+        let routes = Array()
 
-        return await this.initializeProxyServer(_mainHandler)
+        return routes
     }
 }
 
