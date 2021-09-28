@@ -156,58 +156,6 @@ class SSRServer extends DevelopmentServer {
 }
 
 class SSRReactServer extends SSRServer {
-    build = async () => {
-        const outputPath = typeof this.config.build.outDir !== "undefined" ? path.resolve(process.cwd(), this.config.build.outDir) : path.resolve(this.src, "..", "out")
-        const buildPath = path.resolve(process.cwd(), ".tmp")
-
-        if (fs.existsSync(outputPath)) {
-            await rimraf.sync(outputPath)
-        }
-        if (fs.existsSync(buildPath)) {
-            await rimraf.sync(buildPath)
-        }
-
-        // write build files
-        let template = null
-
-        await this.compileDefinitions()
-
-        if (typeof this.config.entryScript !== "undefined") {
-            template = await fs.readFileSync(this.config.entryScript, "utf8")
-        } else {
-            template = buildReactTemplate({ main: `./${path.basename(this.entry)}` }, this.templateContext)
-        }
-
-        const indexHtml = this.getIndexHtmlTemplate("./index.jsx")
-
-        fs.mkdirSync(buildPath, { recursive: true })
-        fs.mkdirSync(outputPath, { recursive: true })
-
-        // copy entire src folder to build folder
-        await fse.copySync(this.src, buildPath)
-
-        // write project main files
-        await fs.writeFileSync(path.resolve(buildPath, "index.jsx"), template)
-        await fs.writeFileSync(path.resolve(buildPath, "index.html"), indexHtml)
-
-        // dispatch to vite.build
-
-        let builderConfig = {
-            ...this.config,
-            root: buildPath,
-            build: {
-                ...this.config.build,
-                emptyOutDir: true,
-                outDir: outputPath,
-            },
-        }
-
-        await vite.build(builderConfig)
-
-        // clean up
-        await rimraf.sync(buildPath)
-    }
-
     compile = async () => {
         if (!this.entry) {
             throw new Error(`No entry provided`)

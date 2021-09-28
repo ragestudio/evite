@@ -1,6 +1,6 @@
 #!/usr/bin/env corenode-node
 const { Command, program } = require("commander")
-const { SSRReactServer, ReactViteDevelopmentServer } = require("../server/index.js")
+const { SSRReactServer, ReactViteDevelopmentServer, BuildServer } = require("../server/index.js")
 
 const eviteServers = {
     "ssr-react": async (...context) => {
@@ -32,13 +32,19 @@ const cliHandler = {
         await server.listen()
     },
     build: async (entry, options) => {
-        const server = new SSRReactServer({
+        const server = new BuildServer({
             src: options.src,
             cwd: options.cwd,
             entry: entry
         })
 
         server.build()
+        .then(() => {
+
+        })
+        .catch((error) => {
+            console.error(`Build fail! >`, error)
+        })
     }
 }
 
@@ -51,7 +57,6 @@ const devCMD = new Command("dev", "Runs the development server")
 
 const buildCMD = new Command("build", "Build with vite")
     .argument("[entry]")
-    .argument("[mode]", "Use provided as render framework", "react")
     .option("--cwd <cwd>")
     .option("--src <src>")
     .action(cliHandler.build)
