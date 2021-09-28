@@ -45,8 +45,8 @@ export default class Template {
             lines: []
         }
 
-        if (typeof this.params.locate === "string") {
-            this.file = new CacheObject(this.params.locate)
+        if (typeof this.params.file === "string") {
+            this.file = new CacheObject(this.params.file, this.params.root)
         }
 
         return this
