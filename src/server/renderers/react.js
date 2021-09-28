@@ -5,7 +5,7 @@ module.exports = (params = {}, context) => {
     throw new Error(`Missing MainModule`)
   }
 
-  const template = new compileTemplate()
+  const template = new compileTemplate({ locate: "__clientReact.jsx" })
 
   // support context injection
   if (Array.isArray(context)) {
@@ -26,5 +26,5 @@ module.exports = (params = {}, context) => {
   template.function("__createRender", undefined, `return ReactDOM.render(<__Main />, document.getElementById("root"))`)
   template.call("__createRender")
 
-  return template.construct()
+  return template
 }
