@@ -39,12 +39,12 @@ const cliHandler = {
         })
 
         server.build()
-        .then(() => {
-
-        })
-        .catch((error) => {
-            console.error(`Build fail! >`, error)
-        })
+            .then(() => {
+                console.log(`\n🎉 Build done!`)
+            })
+            .catch((error) => {
+                console.error(`🆘 Build fail! >`, error)
+            })
     }
 }
 
