@@ -3,7 +3,7 @@ import fs from 'fs'
 
 class CacheObject {
     constructor(key, root) {
-        this.root = global.cachePath ?? root ?? path.join(__dirname, ".cache")
+        this.root = root ?? global.cachePath ?? path.join(__dirname, ".cache")
         this.output = path.join(this.root, key)
 
         if (!fs.existsSync(this.root)) {
