@@ -12,7 +12,7 @@ const BaseConfig = {
     },
     server: {
         watch: {
-            ignored: [selfSourceGlob, "/**/**/.cache", `${process.cwd()}/**/**/.cache`],
+            ignored: [selfSourceGlob, "/**/**/.cache", `${process.cwd()}/**/**/.cache`,  `${process.cwd()}/**/**/.evite`,  `/**/**/.cache`],
             usePolling: true,
             interval: 100,
         },
