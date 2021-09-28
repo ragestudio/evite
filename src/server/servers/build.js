@@ -36,7 +36,7 @@ class BuildServer extends DevelopmentServer {
         }
 
         const outputPath = path.resolve((this.config.build.outDir ?? "out"))
-        const buildPath = path.resolve(__dirname, ".tmp")
+        const buildPath = path.resolve(this.cwd, ".tmp")
 
         // write build files
         let template = null
