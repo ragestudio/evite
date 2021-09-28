@@ -17,7 +17,7 @@ class DevelopmentServer {
         this.cwd = this.params.cwd ?? process.cwd()
         this.src = this.params.src ?? path.join(this.cwd, "src")
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
-        global.cachePath = path.dirname(this.entry)
+        global.cachePath = path.join(path.dirname(this.entry), ".evite")
 
         this.config = this.overrideWithDefaultConfig()
         this.config = this.overrideWithDefaultPlugins(this.config)
