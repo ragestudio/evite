@@ -2,8 +2,8 @@ import path from 'path'
 import fs from 'fs'
 
 class CacheObject {
-    constructor(key) {
-        this.root = global.cachePath ?? path.join(__dirname, ".cache")
+    constructor(key, root) {
+        this.root = global.cachePath ?? root ?? path.join(__dirname, ".cache")
         this.output = path.join(this.root, key)
 
         if (!fs.existsSync(this.root)) {
