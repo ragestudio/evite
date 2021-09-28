@@ -1,13 +1,17 @@
 #!/usr/bin/env corenode-node
 const { Command, program } = require("commander")
-const { SSRReactServer, ViteDevelopmentServer } = require("../server/index.js")
+const { SSRReactServer, ReactViteDevelopmentServer } = require("../server/index.js")
 
 const eviteServers = {
     "ssr-react": async (...context) => {
+        console.clear()
+        console.warn(`\n⚠️ SSR Mode is not fully implemented yet ⚠️\n`)
+
+        await new Promise((resolve) => setTimeout(resolve, 2000))
         return await (new SSRReactServer(...context)).initialize()
     },
     "react": async (...context) => {
-        return await new ViteDevelopmentServer(...context).initialize()
+        return await new ReactViteDevelopmentServer(...context).initialize()
     }
 }
 
