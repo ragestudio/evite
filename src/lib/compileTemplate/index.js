@@ -170,5 +170,7 @@ export default class Template {
         if (typeof this.file !== "undefined") {
             await this.file.write(this.construct())
         }
+        
+        return this
     }
 }
