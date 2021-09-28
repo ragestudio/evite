@@ -12,7 +12,7 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
         if (typeof this.config.build.rollupOptions === "undefined") {
             this.config.build.rollupOptions = Object()
         }
-        
+
         this.config.build.rollupOptions.input = this.entry
         this.config.root = this.cwd
         this.config.server.middlewareMode = "ssr"
@@ -28,7 +28,7 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
             try {
                 const template = await buildReactTemplate({ main: this.entry }, [definitions]).write()
                 const indexHtml = await server.transformIndexHtml(url, compileIndexHtmlTemplate(template.file.output))
-                
+
                 if (isRedirect(req)) {
                     return res.end()
                 }

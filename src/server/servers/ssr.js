@@ -226,10 +226,10 @@ class SSRReactServer extends SSRServer {
         if (typeof this.config.build.rollupOptions === "undefined") {
             this.config.build.rollupOptions = Object()
         }
-        
+
         this.config.build.rollupOptions.input = this.entry
         this.config.root = this.cwd
-        
+
         this.server = await vite.createServer(this.config)
 
         return new Proxy(this.server, {
