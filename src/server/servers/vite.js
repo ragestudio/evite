@@ -8,15 +8,16 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
     initialize = async () => {
         const http = express()
         const definitions = await this.compileDefinitions()
-        const instanceConfig = {
-            ...this.config,
-            root: this.cwd,
-            server: {
-                ...this.config.server,
-                middlewareMode: 'ssr'
-            },
+
+        if (typeof this.config.build.rollupOptions === "undefined") {
+            this.config.build.rollupOptions = Object()
         }
-        const server = await vite.createServer(instanceConfig)
+        
+        this.config.build.rollupOptions.input = this.entry
+        this.config.root = this.cwd
+        this.config.server.middlewareMode = "ssr"
+
+        const server = await vite.createServer(this.config)
 
         http.use(server.middlewares)
         http.use('*', async (req, res) => {
