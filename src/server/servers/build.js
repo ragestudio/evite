@@ -61,18 +61,11 @@ class BuildServer extends DevelopmentServer {
         await fs.writeFileSync(path.join(buildPath, "index.jsx"), template)
         await fs.writeFileSync(path.join(buildPath, "index.html"), indexHtml)
 
-        // dispatch to vite.build
-        let builderConfig = {
-            ...this.config,
-            root: buildPath,
-            build: {
-                ...this.config.build,
-                emptyOutDir: true,
-                outDir: outputPath,
-            },
-        }
+        this.config.root = buildPath
+        this.config.build.outDir = outputPath
 
-        await vite.build(builderConfig)
+        // dispatch to vite.build
+        await vite.build(this.config)
 
         // clean up
         await rimraf.sync(buildPath)
