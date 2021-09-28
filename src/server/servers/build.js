@@ -38,29 +38,27 @@ class BuildServer extends DevelopmentServer {
         const outputPath = path.resolve((this.config.build.outDir ?? "out"))
         const buildPath = path.resolve(this.cwd, ".tmp")
 
-        // write build files
-        let template = null
-
-        const definitions = await this.compileDefinitions()
-
-        if (typeof this.config.entryScript !== "undefined") {
-            template = await fs.readFileSync(this.config.entryScript, "utf8")
-        } else {
-            template = await buildReactTemplate({ main: `./${path.basename(this.entry)}` }, definitions).construct()
-        }
-
-        const indexHtml = this.getIndexHtmlTemplate("./index.jsx")
-
         // prepare directories before build
         await this.makeDirectories([outputPath, buildPath])
 
         // copy entire src folder to build folder
         await fse.copySync(this.src, buildPath)
 
-        // write project main files
-        await fs.writeFileSync(path.join(buildPath, "index.jsx"), template)
+        // write index.html
+        // TODO: Handle custom index.html entry
+        const indexHtml = this.getIndexHtmlTemplate("./index.jsx")
         await fs.writeFileSync(path.join(buildPath, "index.html"), indexHtml)
 
+        // write project main files
+        if (typeof this.config.entryScript !== "undefined") {
+            const template = await fs.readFileSync(this.config.entryScript, "utf8")
+            await fs.writeFileSync(path.join(buildPath, "index.jsx"), template)
+        } else {
+            const definitions = await this.compileDefinitions(buildPath)
+            await buildReactTemplate({ main: `./${path.basename(this.entry)}`, file: "index.jsx", root: buildPath }, [definitions]).write()
+        }
+
+        // override config
         this.config.root = buildPath
         this.config.build.outDir = outputPath
 
