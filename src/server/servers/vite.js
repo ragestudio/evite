@@ -27,7 +27,12 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
             try {
                 const template = await buildReactTemplate({ main: this.entry }, [definitions]).write()
                 const indexHtml = await server.transformIndexHtml(url, compileIndexHtmlTemplate(template.file.output))
+                
+                if (isRedirect(req)) {
+                    return res.end()
+                }
 
+                res.setHeader('Content-Type', 'text/html')
                 return res.status(200).end(indexHtml)
             } catch (error) {
                 server.ssrFixStacktrace(error)
