@@ -7,18 +7,15 @@ An experimental extended version of [ViteJS](https://github.com/vitejs/vite).
 > 🌐 Open the full Wiki on our [Notion](https://bolder-seatbelt-37a.notion.site/eVite-4aea02955fa4495bb80da52217967827) page.
 
 ## 📊 Status
----
 Currently the status of the project is very incomplete, is in a very early stage, where the structure and logic are still being designed.
 Things can change quickly and drastically, resulting in breaking changes.
 
 ## ❔ Why
----
 This framework is made to complement the projects we carry out as a complete web development framework tailored to our needs.
 
 It originates from the need to have a global context where all the internal logic that a "webapp" needs was handled (such as a login method, router ... etc)
 
 ## 🧰 Features
----
 - ⚙️ **Flexible environment**, allows to set advance configuration to the framework, including support with base configuration API of ViteJS.
 - 🧱 **Extensible**, easily extend the global App context with custom extensions.
 - 🗄 **Libraries & Components**, it has a library for common use that contains components and libraries to use within a project. It can also be managed by corenode package manager.
@@ -28,7 +25,6 @@ It originates from the need to have a global context where all the internal logi
 - 🧩 100% Compatible with ViteJS plugins.
 
 ## Guides & Processes
----
 [Quick Start](https://bolder-seatbelt-37a.notion.site/Quick-Start-ab2dc167758444e69821266e4d60f7f1)
 
 [Guidelines](https://bolder-seatbelt-37a.notion.site/Guidelines-355d64f9b29642008ff619ae26dc31c0)
