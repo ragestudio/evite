@@ -22,17 +22,12 @@ It originates from the need to have a global context where all the internal logi
 - 📦 **Out of the box**, evite contains built-in multiple libraries and extensions, (As development server, build server, live serve ...etc)
 - 🛳 Integration with Corenode, including all its benefits as backend.
 - 📈 All ViteJS benefits and features.
-- 🧩 100% Compatible with ViteJS plugins.
+- 🔌 100% Compatible with ViteJS plugins.
 
 ## Guides & Processes
-[Quick Start](https://bolder-seatbelt-37a.notion.site/Quick-Start-ab2dc167758444e69821266e4d60f7f1)
-
 [Guidelines](https://bolder-seatbelt-37a.notion.site/Guidelines-355d64f9b29642008ff619ae26dc31c0)
-
-[Development ](https://bolder-seatbelt-37a.notion.site/Development-83b00bd100f44bf7b7c9cd99dddea2fd)
-
+[Contributing](https://bolder-seatbelt-37a.notion.site/Contributing-daac238717cc46e98093e979473256c0)
+[Development](https://bolder-seatbelt-37a.notion.site/Development-83b00bd100f44bf7b7c9cd99dddea2fd)
 [API](https://bolder-seatbelt-37a.notion.site/API-07982ee4c3df4f6b8d28879da256a006)
-
-[Roadmap](https://bolder-seatbelt-37a.notion.site/346b9cfb4c8440ccb0f13e4caed49be0)
-
 [Supports](https://bolder-seatbelt-37a.notion.site/Supports-8d56cab6b2bd434cbf04ca56e73b851c)
+[Roadmap](https://bolder-seatbelt-37a.notion.site/346b9cfb4c8440ccb0f13e4caed49be0)
