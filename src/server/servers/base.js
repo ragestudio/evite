@@ -91,6 +91,8 @@ class DevelopmentServer {
             env: process.env,
             aliases: config.resolve?.alias
         }
+        
+        config.windowContext.process = config.windowContext.__evite
 
         return config
     }
