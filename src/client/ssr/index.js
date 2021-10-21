@@ -2,7 +2,7 @@ import React, { createContext as reactCreateContext, useContext as reactUseConte
 import ReactDOM from "react-dom"
 import { BrowserRouter, useHistory } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
-import { deserializeState } from "../state"
+import { deserializeState } from "../serialization"
 import { withoutSuffix } from '../url'
 import { useClientRedirect, createRouter } from '../router'
 
