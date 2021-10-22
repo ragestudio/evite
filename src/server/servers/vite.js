@@ -7,7 +7,7 @@ const express = require('express')
 class ReactViteDevelopmentServer extends DevelopmentServer {
     initialize = async () => {
         const http = express()
-        const definitions = await this.compileDefinitions()
+        const definitions = this.getDefinitions()
 
         if (typeof this.config.build.rollupOptions === "undefined") {
             this.config.build.rollupOptions = Object()
@@ -26,8 +26,16 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
             const url = protocol + '://' + req.headers.host + req.originalUrl
 
             try {
-                const template = await buildReactTemplate({ main: this.entry }, [definitions]).write()
+                const additionsLines = []
+
+                additionsLines.push(`function __setDefinitions() { ${definitions} }`)
+                additionsLines.push(`__setDefinitions()`)
+
+                const template = await buildReactTemplate({ main: this.entry }, additionsLines)
                 const indexHtml = await server.transformIndexHtml(url, compileIndexHtmlTemplate(template.file.output))
+
+                // write file
+                template.write()
 
                 if (isRedirect(req)) {
                     return res.end()

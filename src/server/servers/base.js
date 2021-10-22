@@ -128,19 +128,8 @@ class DevelopmentServer {
                 defs.push(`window["${key}"] = ${value};`)
             })
 
-            return `export default () => { ${defs.join("")} }`
+            return defs.join("")
         }
-    }
-
-    compileDefinitions = async (root) => {
-        let template = []
-
-        const _definitions = await new CacheObject("__definitions.js", root).write(this.getDefinitions())
-
-        template.push(`import __make__definitions from '${_definitions.output}';`)
-        template.push(`__make__definitions();`)
-
-        return template.join("\n")
     }
 
     getIndexHtmlTemplate = (mainScript) => {
