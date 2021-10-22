@@ -41,7 +41,7 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
                     return res.end()
                 }
 
-                res.setHeader('Content-Type', 'text/html')
+                // res.setHeader('Content-Type', 'text/html')
                 return res.status(200).end(indexHtml)
             } catch (error) {
                 server.ssrFixStacktrace(error)
