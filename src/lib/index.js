@@ -1,4 +1,3 @@
-export { default as getProjectConfig } from './getProjectConfig'
 export { default as CacheObject } from './cache'
 export { default as buildHtml } from './buildHtml'
 export { default as compileIndexHtmlTemplate } from './compileIndexHtmlTemplate'
