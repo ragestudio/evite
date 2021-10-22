@@ -1,15 +1,14 @@
 const { compileTemplate } = require("../../lib")
 
-module.exports = (params = {}, context) => {
+module.exports = (params = {}, additions) => {
   if (!params.main) {
     throw new Error(`Missing MainModule`)
   }
 
   const template = new compileTemplate({ file: (params.file ?? "__clientReact.jsx"), root: params.root })
 
-  // support context injection
-  if (Array.isArray(context)) {
-    context.forEach(line => {
+  if (Array.isArray(additions)) {
+    additions.forEach(line => {
       template.line(line)
     })
   }
