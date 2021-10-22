@@ -1,21 +1,38 @@
 import {createEviteApp} from "evite"
-import { Subscribe, Container } from "evite/client/statement"
 import React from "react"
 
-import "./index.less"
+const testExtension = {
+	key: "test",
+	expose: [
+		{
+			initialization: [
+				() => {
+					console.log("Test extension initialized")
+				}
+			],
+		},
+	],
+}
 
-export default class ExampleApp extends createEviteApp() {
-	state = {
-		count: 0,
-	}
-
+class ExampleApp extends React.Component {
 	render() {
 		return (
 			<div>
-				{this.state.count}
+				<div>
+					<h2>Extensions</h2>
+					<div>
+						{this.props.context.extensionsKeys.map(key => {
+							return <div>{key}</div>
+						})}
+					</div>
+					<hr />
+				</div>
+
+				<div>GLOBAL STATE {this.props.globalState.count}</div>
+
 				<button
 					onClick={() => {
-						this.setState({count: (this.state.count += 1)})
+						this.props.setGlobalState({count: this.props.globalState.count + 1})
 					}}>
 					add count
 				</button>
@@ -23,3 +40,5 @@ export default class ExampleApp extends createEviteApp() {
 		)
 	}
 }
+
+export default createEviteApp(ExampleApp, {extensions: [testExtension], globalState: {count: 0}})
