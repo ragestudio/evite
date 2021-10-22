@@ -5,7 +5,7 @@ const path = require("path")
 
 const { findUpSync } = require("corenode/filesystem")
 const { EventEmitter } = require("events")
-const { getProjectConfig, compileIndexHtmlTemplate, CacheObject } = require("../../lib")
+const { compileIndexHtmlTemplate } = require("../../lib")
 const { ConfigController } = require("../config.js")
 const { getDefaultAliases } = require("../aliases.js")
 const { getDefaultPlugins } = require("../plugins.js")
@@ -17,13 +17,16 @@ class DevelopmentServer {
         this.cwd = this.params.cwd ?? process.cwd()
         this.src = this.params.src ?? path.join(this.cwd, "src")
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
+
         global.cachePath = path.join(path.dirname(this.entry), ".evite")
 
+        this.configFile = findUpSync(global.configFile ?? [".config.js", ".eviterc.js",], { cwd: process.cwd() })
         this.config = this.overrideWithDefaultConfig()
         this.config = this.overrideWithDefaultPlugins(this.config)
         this.config = this.overrideWithDefaultAliases(this.config)
         this.config = this.overrideWithEviteContextNamespace(this.config)
         this.config = this.overrideWithProjectConfig(this.config)
+        this.config = this.parseConfig(this.config)
 
         this.listenPort = this.config.server.port ?? 8000
 
@@ -91,17 +94,51 @@ class DevelopmentServer {
             env: process.env,
             aliases: config.resolve?.alias
         }
-        
+
         config.windowContext.process = config.windowContext.__evite
 
         return config
     }
 
     overrideWithProjectConfig = (config = {}) => {
-        config = {
-            ...getProjectConfig(config),
-            ...config
+        if (fs.existsSync(this.configFile)) {
+            try {
+                let configs = require(this.configFile)
+
+                configs = configs.default ?? configs
+
+                if (typeof configs === "function") {
+                    const objectProxy = new Proxy(config, {})
+                    config = configs(objectProxy) ?? objectProxy
+                }
+
+                if (typeof configs === "object") {
+                    //TODO
+                }
+            } catch (error) {
+                console.error(error)
+            }
         }
+
+        return config
+    }
+
+    parseConfig = (config = {}) => {
+        // TODO: parse aliasers 
+        // if (typeof config.aliases === "object") {            
+        //     const aliases = []
+
+        //     if (Array.isArray(config.aliases)) {
+
+        //     }else {
+        //         Object.keys(config.aliases).forEach(key => {
+        //             aliases.push({
+        //                 find: key,
+        //                 replacement: config.aliases[key]
+        //             })
+        //         })
+        //     }
+        // }
 
         return config
     }
