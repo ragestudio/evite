@@ -1,5 +1,5 @@
 {
-  "fixedMainScript": "./client/index.js",
+  "fixedMainScript": "./client/index.jsx",
   "builder": {
     "ignoreSources": [
       "./client/**/**"
