@@ -5,8 +5,8 @@ const StateContext = createReactContext(null)
 const DUMMY_STATE = {}
 
 export class Container {
-    state = Object()
-    _listeners = Array()
+    state = {}
+    _listeners = []
 
     setState(updater, callback) {
         return Promise.resolve().then(() => {
@@ -45,8 +45,8 @@ export class Container {
 }
 
 export class Subscribe extends React.Component {
-    state = Object()
-    instances = Array()
+    state = {}
+    instances = []
     unmounted = false
 
     componentWillUnmount() {
@@ -71,6 +71,9 @@ export class Subscribe extends React.Component {
     }
 
     _createInstances(map, containers) {
+        if (!Array.isArray(containers)) {
+            throw new Error('Subscribe: to must be an array of containers')            
+        }
         this._unsubscribe()
 
         if (map === null) {
@@ -111,11 +114,9 @@ export class Subscribe extends React.Component {
         return (
             <StateContext.Consumer>
                 {
-                    map =>
-                        this.props.children.apply(
-                            null,
-                            this._createInstances(map, this.props.to)
-                        )
+                    map =>{
+                        return this.props.children.apply(null, this._createInstances(map, this.props.to))
+                    }
                 }
             </StateContext.Consumer>
         )
