@@ -4,7 +4,7 @@ import EventBus from "./eventBus"
 import classAggregation from "./classAggregation"
 import GlobalBindingProvider from "./globalBindingProvider"
 import appendMethodToApp from "./appendMethodToApp"
-import {Provider, Subscribe, createStateContainer} from "evite/client/statement"
+import {Provider, Subscribe, createStateContainer} from "./statement"
 
 class IsolatedContext {
 	constructor(context = {}) {
