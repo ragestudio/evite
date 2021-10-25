@@ -17,10 +17,9 @@ class DevelopmentServer {
         this.cwd = this.params.cwd ?? process.cwd()
         this.src = this.params.src ?? path.join(this.cwd, "src")
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
-
-        global.cachePath = path.join(path.dirname(this.entry), ".evite")
-
-        this.configFile = findUpSync(global.configFile ?? [".config.js", ".eviterc.js",], { cwd: process.cwd() })
+        this.cache = global.cachePath = path.join(path.dirname(__dirname), ".cache")
+        
+        this.configFile = findUpSync(this.params.configFile ?? [".config.js", ".eviterc.js",], { cwd: this.cwd })
         this.config = this.overrideWithDefaultConfig()
         this.config = this.overrideWithDefaultPlugins(this.config)
         this.config = this.overrideWithDefaultAliases(this.config)
@@ -44,7 +43,13 @@ class DevelopmentServer {
     overrideWithDefaultConfig = (config = {}) => {
         config = {
             ...ConfigController.config,
-            ...this.params.config
+            ...this.params.config,
+        }
+
+        if (Array.isArray(config.server?.fs?.allow)) {
+            config.server.fs.allow.push(this.cache)
+            config.server.fs.allow.push(path.join(process.cwd(), "node_modules"))
+            config.server.fs.allow.push(path.join(this.cwd, "node_modules"))
         }
 
         return config
@@ -76,6 +81,7 @@ class DevelopmentServer {
             ...this.params.aliases,
             ...config.resolve?.alias,
             "@app": this.entry,
+            "@client": this.cache,
         }
 
         return config
