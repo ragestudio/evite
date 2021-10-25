@@ -26,6 +26,7 @@ const cliHandler = {
         const server = await eviteServers[mode]({
             src: options.src,
             cwd: options.cwd,
+            configFile: options.configFile,
             entry: entry
         })
 
@@ -52,6 +53,7 @@ const devCMD = new Command("dev", "Runs the development server")
     .argument("[entry]")
     .option("--mode <mode>", "Use provided as render framework")
     .option("--cwd <cwd>")
+    .option("--configFile <configFile>")
     .option("--src <src>")
     .action(cliHandler.dev)
 
