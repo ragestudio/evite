@@ -9,11 +9,31 @@ import {Provider, Subscribe, createStateContainer} from "./statement"
 class IsolatedContext {
 	constructor(context = {}) {
 		this.isolatedKeys = Object.keys(context)
-		return new Proxy(context, this.handler)
+		this.listeners = {
+			set: [],
+			get: [],
+		}
+
+		this.proxy = new Proxy(context, this.handler)
+		return this
+	}
+
+	subscribe = (event, listener) => {
+		this.listeners[event].push(listener)
+	}
+
+	getProxy = () => {
+		return this.proxy
 	}
 
 	handler = {
 		get: (target, name) => {
+			this.listeners["get"].forEach(listener => {
+				if (typeof listener === "function") {
+					listener(target, name)
+				}
+			})
+
 			return target[name]
 		},
 		set: (target, name, value) => {
@@ -21,8 +41,15 @@ class IsolatedContext {
 				console.error("Cannot assign an value to an isolated property", name, value)
 				return false
 			}
+			const assignation = Object.assign(target, {[name]: value})
 
-			return Object.assign(target, {[name]: value})
+			this.listeners["set"].forEach(listener => {
+				if (typeof listener === "function") {
+					listener(target, name, value)
+				}
+			})
+
+			return assignation
 		},
 	}
 }
@@ -31,10 +58,11 @@ class EviteApp extends React.Component {
 	constructor(props) {
 		super(props)
 
+		// render
+		this.__render = null
+
 		// set window app controllers
-		this.mainFragment = this.props.children
-		this.app = window.app = Object()
-		this.controllers = this.app.controllers = {}
+		this.windowContext = window.app = Object()
 
 		// initializations
 		this.initializationTasks = []
@@ -47,6 +75,11 @@ class EviteApp extends React.Component {
 		// extensions
 		this.extensionsKeys = []
 
+		// contexts
+		this.mainContext = new IsolatedContext(this)
+		this.appContext = new IsolatedContext({})
+		this.globalContext = React.createContext(this.mainContext.getProxy())
+
 		// declare events
 		this.eventBus.on("initialization", async () => {
 			this.initialized = false
@@ -57,12 +90,45 @@ class EviteApp extends React.Component {
 			this.forceUpdate()
 		})
 
-		// isolated context
-		this.isolatedContext = new IsolatedContext(this)
+		// append app methods
+		this.appendToWindowContext("connectToGlobalContext", this.connectToGlobalContext)
+	}
+
+	initialization = async () => {
+		this.eventBus.emit("initialization")
+
+		// create new state container
+		this.globalStateContainer = createStateContainer({...this.constructorParams?.globalState})
+
+		// check if can register children as render
+		if (!this.__render && this.props.children) {
+			this.registerRender(this.props.children)
+		}
+
+		// handle constructorParams
+		if (typeof this.constructorParams !== "undefined" && typeof this.constructorParams === "object") {
+			// attach extensions
+			if (Array.isArray(this.constructorParams.extensions)) {
+				this.constructorParams.extensions.forEach(extension => {
+					this.attachExtension(extension)
+				})
+			}
+		}
+
+		// perform tasks
+		if (Array.isArray(this.initializationTasks)) {
+			for await (let task of this.initializationTasks) {
+				if (typeof task === "function") {
+					await task(this.appContext.getProxy(), this.mainContext.getProxy())
+				}
+			}
+		}
+
+		this.eventBus.emit("initialization_done")
 	}
 
 	componentDidMount = async () => {
-		await this._init()
+		await this.initialization()
 	}
 
 	shouldComponentUpdate() {
@@ -86,7 +152,7 @@ class EviteApp extends React.Component {
 
 			exposeArray.forEach(expose => {
 				if (typeof expose.mutateContext !== "undefined") {
-					this.mutateContext(expose.mutateContext)
+					this.mutateContext(this.appContext.getProxy(), expose.mutateContext)
 				}
 				if (typeof expose.initialization !== "undefined") {
 					this.appendToInitializer(expose.initialization)
@@ -97,21 +163,33 @@ class EviteApp extends React.Component {
 		this.extensionsKeys.push(extension.key)
 	}
 
-	mutateContext = self => {
-		if (typeof self !== "object") {
+	connectToGlobalContext = component => {
+		return React.createElement(this.globalContext.Consumer, null, context => {
+			return React.createElement(component, {
+				...context,
+			})
+		})
+	}
+
+	mutateContext = (context, mutation) => {
+		if (typeof context !== "object") {
+			console.error("Context must be an object or an valid Context")
+			return false
+		}
+		if (typeof mutation !== "object") {
 			console.error("Mutation must be an object")
 			return false
 		}
 
-		Object.keys(self).forEach(key => {
-			if (typeof self[key] === "function") {
-				this.isolatedContext[key] = self[key].bind(this.isolatedContext)
+		Object.keys(mutation).forEach(key => {
+			if (typeof mutation[key] === "function") {
+				context[key] = mutation[key].bind(context)
 			}
 
-			this.isolatedContext[key] = self[key]
+			context[key] = mutation[key]
 		})
 
-		return this.isolatedContext
+		return context
 	}
 
 	appendToInitializer = task => {
@@ -130,50 +208,39 @@ class EviteApp extends React.Component {
 		})
 	}
 
-	appendToApp = (key, method) => {
-		this.app[key] = method
+	appendToAppContext = (key, method) => {
+		this.appContext.getProxy()[key] = method.bind(this.mainContext.getProxy())
 	}
 
-	_init = async () => {
-		this.eventBus.emit("initialization")
+	appendToWindowContext = (key, method) => {
+		this.windowContext[key] = method
+	}
 
-		this.globalStateContainer = createStateContainer({...this.constructorContext?.globalState})
+	registerRender = component => {
+		const _this = this
 
-		if (typeof this.constructorContext !== "undefined" && typeof this.constructorContext === "object") {
-			// attach extensions
-			if (Array.isArray(this.constructorContext.extensions)) {
-				this.constructorContext.extensions.forEach(extension => {
-					this.attachExtension(extension)
+		const App = class extends component {
+			constructor(props) {
+				super(props)
+
+				this.app = _this.appContext.getProxy()
+				this.mainContext = _this.mainContext.getProxy()
+
+				_this.appContext.subscribe("set", () => {
+					this.forceUpdate()
+				})
+
+				_this.mainContext.subscribe("set", () => {
+					this.forceUpdate()
 				})
 			}
 		}
 
-		// perform tasks
-		if (Array.isArray(this.initializationTasks)) {
-			for await (let task of this.initializationTasks) {
-				if (typeof task === "function") {
-					await task(this)
-				}
-			}
-		}
-
-		if (typeof this["initialization"] === "function") {
-			try {
-				await this.initialization()
-			} catch (error) {
-				console.error(error)
-			}
-		}
-
-		this.eventBus.emit("initialization_done")
-	}
-
-	registerRender = component => {
-		this.mainFragment = component
+		this.__render = props => React.createElement(App, props)
 	}
 
 	render() {
-		if (!this.mainFragment) {
+		if (!this.__render) {
 			console.error("EviteApp has not an render method, auto render must have a children or an mainFragment")
 			return null
 		}
@@ -181,24 +248,20 @@ class EviteApp extends React.Component {
 			return null
 		}
 
-		const App = props => {
-			if (React.isValidElement()) {
-				return React.cloneElement(this.mainFragment, {context: this.isolatedContext, ...props})
-			}
-			return React.createElement(this.mainFragment, {context: this.isolatedContext, ...props})
-		}
+		const App = this.__render
+		const GlobalContext = this.globalContext
 
 		return (
 			<Provider>
 				<Subscribe to={[this.globalStateContainer]}>
-					{globalState => {
+					{globalStateInstance => {
+						const globalState = globalStateInstance.state
+						const setGlobalState = (...args) => globalStateInstance.setState(...args)
+
 						return (
-							<App
-								globalState={globalState.state}
-								setGlobalState={(...context) => {
-									globalState.setState(...context)
-								}}
-							/>
+							<GlobalContext.Provider value={this.appContext.getProxy()}>
+								<App globalState={globalState} setGlobalState={setGlobalState} />
+							</GlobalContext.Provider>
 						)
 					}}
 				</Subscribe>
@@ -207,11 +270,11 @@ class EviteApp extends React.Component {
 	}
 }
 
-function createEviteApp(component, context) {
+function createEviteApp(component, params) {
 	return class extends classAggregation(EviteApp) {
 		constructor(props) {
 			super(props)
-			this.constructorContext = {...context, ...props}
+			this.constructorParams = {...params, ...props}
 			this.registerRender(component)
 		}
 	}
