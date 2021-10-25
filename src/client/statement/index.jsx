@@ -1,7 +1,6 @@
 import React from "react"
-import createReactContext from "create-react-context"
 
-const StateContext = createReactContext(null)
+const StateContext = React.createContext(null)
 const DUMMY_STATE = {}
 
 export class Container {
