@@ -1,6 +1,8 @@
 import {createEviteApp} from "evite"
 import React from "react"
 
+import "./index.less"
+
 const testExtension = {
 	key: "test",
 	expose: [
