@@ -32,7 +32,9 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
                 additionsLines.push(`__setDefinitions()`)
 
                 const template = await buildReactTemplate({ main: this.entry }, additionsLines)
-                const indexHtml = await server.transformIndexHtml(url, compileIndexHtmlTemplate(template.file.output))
+                const htmlTemplate = compileIndexHtmlTemplate({ head: [template.file.output] })
+
+                const indexHtml = await server.transformIndexHtml(url, htmlTemplate)
 
                 // write file
                 template.write()
