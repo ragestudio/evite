@@ -16,13 +16,11 @@ module.exports = (params = {}, additions) => {
   // append basics of react
   template.import("React", "react")
   template.import("ReactDOM", "react-dom")
-  template.import("{ BrowserRouter }", "react-router-dom")
 
   // import main 
   template.import("__MainModule", params.main)
 
-  template.constable("__Main", `() => { return <BrowserRouter> <__MainModule /> </BrowserRouter> }`)
-  template.function("__createRender", undefined, `return ReactDOM.render(<__Main />, document.getElementById("root"))`)
+  template.function("__createRender", undefined, `return ReactDOM.render(<__MainModule />, document.getElementById("root"))`)
   template.call("__createRender")
 
   return template
