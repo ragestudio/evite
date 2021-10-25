@@ -22,9 +22,6 @@ const BaseConfig = {
             allow: [".."]
         },
     },
-    optimizeDeps: {
-        auto: true,
-    },
     windowContext: Object(),
     resolve: Object(),
 }
