@@ -6,8 +6,6 @@ function getDefaultAliases(cwd) {
 
     let rootAliases = {
         "$": rootPath,
-        schemas: path.join(rootPath, 'schemas'),
-        interface: path.join(rootPath, 'interface'),
         config: path.join(rootPath, 'config'),
     }
 
