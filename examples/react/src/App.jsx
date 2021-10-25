@@ -8,7 +8,13 @@ const testExtension = {
 	expose: [
 		{
 			initialization: [
-				() => {
+				(self, main) => {
+					main.appendToAppContext("setTest", () => {
+						self.test = Math.random()
+					})
+
+					main.appendToWindowContext("setTest", self.setTest)
+
 					console.log("Test extension initialized")
 				}
 			],
@@ -17,19 +23,27 @@ const testExtension = {
 }
 
 class ExampleApp extends React.Component {
+	constructor(props) {
+		super(props)
+	}
+
 	render() {
+		console.log(`RENDER`)
+
 		return (
 			<div>
 				<div>
 					<h2>Extensions</h2>
 					<div>
-						{this.props.context.extensionsKeys.map(key => {
+						{this.mainContext.extensionsKeys.map(key => {
 							return <div>{key}</div>
 						})}
 					</div>
 					<hr />
 				</div>
-
+				
+				{this.app.test}
+			
 				<div>GLOBAL STATE {this.props.globalState.count}</div>
 
 				<button
