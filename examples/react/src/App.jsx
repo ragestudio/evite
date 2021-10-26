@@ -1,4 +1,4 @@
-import {createEviteApp} from "evite"
+import {CreateEviteApp} from "evite"
 import React from "react"
 
 import "./index.less"
@@ -51,4 +51,4 @@ class ExampleApp extends React.Component {
 	}
 }
 
-export default createEviteApp(ExampleApp, {extensions: [testExtension], globalState: {count: 0}})
+export default CreateEviteApp(ExampleApp, {extensions: [testExtension], globalState: {count: 0}})
