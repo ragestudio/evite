@@ -1,10 +1,10 @@
 import React from "react"
-import {createBrowserHistory} from "history"
+import { createBrowserHistory } from "history"
 import EventBus from "./eventBus"
 import classAggregation from "./classAggregation"
 import GlobalBindingProvider from "./globalBindingProvider"
 import appendMethodToApp from "./appendMethodToApp"
-import {Provider, Subscribe, createStateContainer} from "./statement"
+import { Provider, Subscribe, createStateContainer } from "./statement"
 
 class IsolatedContext {
 	constructor(context = {}) {
@@ -41,7 +41,7 @@ class IsolatedContext {
 				console.error("Cannot assign an value to an isolated property", name, value)
 				return false
 			}
-			const assignation = Object.assign(target, {[name]: value})
+			const assignation = Object.assign(target, { [name]: value })
 
 			this.listeners["set"].forEach(listener => {
 				if (typeof listener === "function") {
@@ -58,6 +58,11 @@ class EviteApp extends React.Component {
 	constructor(props) {
 		super(props)
 
+		// base state
+		this.state = {
+			initialized: false,
+		}
+
 		// render
 		this.__render = null
 
@@ -66,7 +71,15 @@ class EviteApp extends React.Component {
 
 		// initializations
 		this.initializationTasks = []
-		this.initialized = Boolean(false)
+		this.initialized = new Proxy({}, {
+			get: () => {
+				return this.state.initialized
+			},
+			set: () => {
+				console.error("Cannot update initialized state by assignment")
+				return false
+			}
+		})
 
 		// controllers
 		this.history = window.app.history = createBrowserHistory()
@@ -82,12 +95,11 @@ class EviteApp extends React.Component {
 
 		// declare events
 		this.eventBus.on("initialization", async () => {
-			this.initialized = false
+
 		})
 
 		this.eventBus.on("initialization_done", async () => {
-			this.initialized = true
-			this.forceUpdate()
+
 		})
 
 		// append app methods
@@ -98,7 +110,7 @@ class EviteApp extends React.Component {
 		this.eventBus.emit("initialization")
 
 		// create new state container
-		this.globalStateContainer = createStateContainer({...this.constructorParams?.globalState})
+		this.globalStateContainer = createStateContainer({ ...this.constructorParams?.globalState })
 
 		// check if can register children as render
 		if (!this.__render && this.props.children) {
@@ -129,10 +141,14 @@ class EviteApp extends React.Component {
 
 	componentDidMount = async () => {
 		await this.initialization()
+
+		this.toogleInitializationState(true)
 	}
 
-	shouldComponentUpdate() {
-		return this.initialized
+	toogleInitializationState = (to) => {
+		this.setState({
+			initialized: to ?? !this.state.initialized
+		})
 	}
 
 	attachExtension = extension => {
@@ -219,10 +235,8 @@ class EviteApp extends React.Component {
 	registerRender = component => {
 		const _this = this
 
-		const App = class extends component {
-			constructor(props) {
-				super(props)
-
+		const ContextedClass = class {
+			initializer() {
 				this.app = _this.appContext.getProxy()
 				this.mainContext = _this.mainContext.getProxy()
 
@@ -236,7 +250,24 @@ class EviteApp extends React.Component {
 			}
 		}
 
+		const App = class extends classAggregation(React.Component, ContextedClass, component) {
+			constructor(props) {
+				super(props)
+			}
+		}
+
 		this.__render = props => React.createElement(App, props)
+	}
+
+	getAppRenders = (key) => {
+		const context = this.appContext.getProxy()
+		const renders = context?.renders ?? {}
+
+		if (typeof renders === "object") {
+			if (key in renders) {
+				return renders[key]
+			}
+		}
 	}
 
 	render() {
@@ -244,7 +275,14 @@ class EviteApp extends React.Component {
 			console.error("EviteApp has not an render method, auto render must have a children or an mainFragment")
 			return null
 		}
-		if (!this.initialized) {
+
+		if (!this.state.initialized) {
+			const CustomRender = this.getAppRenders("initialization")
+
+			if (React.isValidElement(CustomRender)) {
+				return <CustomRender />
+			}
+
 			return null
 		}
 
@@ -274,11 +312,11 @@ function createEviteApp(component, params) {
 	return class extends classAggregation(EviteApp) {
 		constructor(props) {
 			super(props)
-			this.constructorParams = {...params, ...props}
+			this.constructorParams = { ...params, ...props }
 			this.registerRender(component)
 		}
 	}
 }
 
-export {EviteApp, createEviteApp, EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp}
+export { EviteApp, createEviteApp, EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp }
 export default EviteApp
