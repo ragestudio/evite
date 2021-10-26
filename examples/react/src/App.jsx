@@ -23,13 +23,7 @@ const testExtension = {
 }
 
 class ExampleApp extends React.Component {
-	constructor(props) {
-		super(props)
-	}
-
 	render() {
-		console.log(`RENDER`)
-
 		return (
 			<div>
 				<div>
