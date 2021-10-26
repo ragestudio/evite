@@ -4,7 +4,7 @@ import { createBrowserHistory } from "history"
 import EventBus from "./eventBus"
 import ClassAggregation from "./classAggregation"
 import BindPropsProvider from "./bindPropsProvider"
-import AppendToWindowContext from "./appendToWindowContext"
+import SetToWindowContext from "./setToWindowContext"
 import { Provider, Subscribe, createStateContainer } from "./statement"
 
 class IsolatedContext {
@@ -67,8 +67,13 @@ class EviteApp extends React.Component {
 		// render
 		this.__render = null
 
-		// set window app controllers
+		// extensions
+		this.extensionsKeys = []
+		// contexts
 		this.windowContext = window.app = Object()
+		this.mainContext = new IsolatedContext(this)
+		this.appContext = new IsolatedContext({})
+		this.globalContext = React.createContext(this.mainContext.getProxy())
 
 		// initializations
 		this.initializationTasks = []
@@ -83,19 +88,11 @@ class EviteApp extends React.Component {
 		})
 
 		// controllers
-		this.history = window.app.history = createBrowserHistory()
-		this.eventBus = window.app.eventBus = new EventBus()
-
-		// extensions
-		this.extensionsKeys = []
-
-		// contexts
-		this.mainContext = new IsolatedContext(this)
-		this.appContext = new IsolatedContext({})
-		this.globalContext = React.createContext(this.mainContext.getProxy())
+		this.history = this.setToWindowContext({ key: "history", locked: true }, createBrowserHistory())
+		this.eventBus = this.setToWindowContext({ key: "eventBus", locked: true }, new EventBus())
 
 		// append app methods
-		this.appendToWindowContext("connectToGlobalContext", this.connectToGlobalContext)
+		this.setToWindowContext({ key: "connectToGlobalContext", locked: true }, this.connectToGlobalContext)
 	}
 
 	initialization = async () => {
@@ -123,6 +120,10 @@ class EviteApp extends React.Component {
 			}
 		}
 
+		if (typeof this.__render.initialize === "function") {
+			await this.__render.initialize(this.appContext.getProxy(), this.mainContext.getProxy(), this.__render)
+		}
+
 		this.eventBus.emit("initialization_done")
 	}
 
@@ -133,7 +134,7 @@ class EviteApp extends React.Component {
 		if (!this.__render && this.props.children) {
 			this.__render = this.props.children
 		}
-		 
+
 		// create render
 		const Render = this.compileContextedRender(this.__render)
 		this.__render = props => React.createElement(Render, props)
@@ -221,12 +222,36 @@ class EviteApp extends React.Component {
 		})
 	}
 
-	appendToAppContext = (key, method) => {
+	setToAppContext = (key, method) => {
 		this.appContext.getProxy()[key] = method.bind(this.mainContext.getProxy())
 	}
 
-	appendToWindowContext = (key, method) => {
-		this.windowContext[key] = method
+	setToWindowContext = (params = {}, value, ...args) => {
+		let opts = {
+			key: params.key,
+			locked: params.locked ?? false,
+			enumerable: params.enumerable ?? true,
+		}
+
+		if (typeof params === "string") {
+			opts.key = params
+		}
+
+		if (typeof opts.key === 'undefined') {
+			throw new Error('key is required')
+		}
+
+		if (args.length > 0) {
+			value = value(...args)
+		}
+
+		Object.defineProperty(this.windowContext, opts.key, {
+			value,
+			enumerable: opts.enumerable,
+			configurable: opts.locked
+		})
+		
+		return this.windowContext[opts.key]
 	}
 
 	compileContextedRender = base => {
@@ -309,5 +334,5 @@ function CreateEviteApp(component, params) {
 	}
 }
 
-export { EviteApp, CreateEviteApp, EventBus, ClassAggregation, BindPropsProvider, AppendToWindowContext }
+export { EviteApp, CreateEviteApp, EventBus, ClassAggregation, BindPropsProvider, SetToWindowContext }
 export default EviteApp
