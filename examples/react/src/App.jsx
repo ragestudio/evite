@@ -9,11 +9,11 @@ const testExtension = {
 		{
 			initialization: [
 				(self, main) => {
-					main.appendToAppContext("setTest", () => {
+					main.setToAppContext("setTest", () => {
 						self.test = Math.random()
 					})
 
-					main.appendToWindowContext("setTest", self.setTest)
+					main.setToWindowContext("setTest", self.setTest)
 
 					console.log("Test extension initialized")
 				}
@@ -44,6 +44,14 @@ class ExampleApp extends React.Component {
 			quickSum: false,
 		}
 		this.quickSumInterval = null
+	}
+
+	static get initialize() {
+		return async (app, main, self) => {
+			console.log(app)
+			console.log(main)
+			console.log(self)
+		}
 	}
 
 	static get renders(){
