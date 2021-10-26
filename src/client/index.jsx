@@ -104,11 +104,6 @@ class EviteApp extends React.Component {
 		// create new state container
 		this.globalStateContainer = createStateContainer({ ...this.constructorParams?.globalState })
 
-		// check if can register children as render
-		if (!this.__render && this.props.children) {
-			this.registerRender(this.props.children)
-		}
-
 		// handle constructorParams
 		if (typeof this.constructorParams !== "undefined" && typeof this.constructorParams === "object") {
 			// attach extensions
@@ -134,6 +129,16 @@ class EviteApp extends React.Component {
 	componentDidMount = async () => {
 		await this.initialization()
 
+		// if not render method, set children as mainFragment
+		if (!this.__render && this.props.children) {
+			this.__render = this.props.children
+		}
+		 
+		// create render
+		const Render = this.compileContextedRender(this.__render)
+		this.__render = props => React.createElement(Render, props)
+
+		// toogle initialized state for start rendering mainFragment
 		this.toogleInitializationState(true)
 	}
 
@@ -224,7 +229,7 @@ class EviteApp extends React.Component {
 		this.windowContext[key] = method
 	}
 
-	registerRender = component => {
+	compileContextedRender = base => {
 		const _this = this
 
 		const ContextedClass = class {
@@ -242,12 +247,11 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		this.__render = props => React.createElement(ClassAggregation(component, ContextedClass), props)
+		return ClassAggregation(base, ContextedClass)
 	}
 
-	getAppRenders = (key) => {
-		const context = this.appContext.getProxy()
-		const renders = context?.renders ?? {}
+	getDefinedRenders = (key) => {
+		const renders = this.__render?.renders ?? {}
 
 		if (typeof renders === "object") {
 			if (key in renders) {
@@ -263,9 +267,9 @@ class EviteApp extends React.Component {
 		}
 
 		if (!this.state.initialized) {
-			const CustomRender = this.getAppRenders("initialization")
+			const CustomRender = this.getDefinedRenders("initialization")
 
-			if (React.isValidElement(CustomRender)) {
+			if (typeof CustomRender !== "undefined") {
 				return <CustomRender />
 			}
 
@@ -300,7 +304,7 @@ function CreateEviteApp(component, params) {
 			super(props)
 
 			this.constructorParams = { ...params, ...props }
-			this.registerRender(component)
+			this.__render = component
 		}
 	}
 }
