@@ -23,29 +23,54 @@ const testExtension = {
 }
 
 class ExampleApp extends React.Component {
+	constructor(props) {
+		super(props)
+		this.state = {
+			localCount: 0,
+			quickSum: false,
+		}
+		this.quickSumInterval = null
+	}
+
+	toogleQuickSum = (to) => { 
+		this.setState({
+			quickSum: to ?? !this.state.quickSum
+		}, () => {
+			if (this.state.quickSum === true) {
+				this.quickSumInterval = setInterval(() => {
+					this.sumOne()
+				}, 1)
+			}else {
+				console.log("clearing interval")
+				clearInterval(this.quickSumInterval)
+				this.quickSumInterval = null
+			}
+		})
+	}
+
+	sumOne = () => {
+		this.setState({ localCount: this.state.localCount + 1 })
+		this.app.globalCount = Number(this.app.globalCount ?? 0) + 1
+	}
+
 	render() {
 		return (
-			<div>
-				<div>
-					<h2>Extensions</h2>
-					<div>
-						{this.mainContext.extensionsKeys.map(key => {
-							return <div>{key}</div>
-						})}
-					</div>
-					<hr />
+			<div className="exampleApp">	
+				<div className="display">
+					Global: <h1>{this.app.globalCount}</h1>
+					Local: <h1>{this.state.localCount}</h1>
 				</div>
-				
-				{this.app.test}
-			
-				<div>GLOBAL STATE {this.props.globalState.count}</div>
-
 				<button
-					onClick={() => {
-						this.props.setGlobalState({count: this.props.globalState.count + 1})
-					}}>
-					add count
+					onClick={this.sumOne}>
+					+
 				</button>
+				<div className="actions">
+					<div>
+						<button onClick={() => this.toogleQuickSum()}>
+							{this.state.quickSum ? "Stop" : "Start"} quick sum
+						</button>
+					</div>
+				</div>
 			</div>
 		)
 	}
