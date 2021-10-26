@@ -3,8 +3,11 @@ const { DevelopmentServer } = require('./base')
 const { compileIndexHtmlTemplate } = require("../../lib")
 const buildReactTemplate = require("../renderers/react")
 const express = require('express')
+const spinner = require("corenode/libs/cli-spinner").default
 
 class ReactViteDevelopmentServer extends DevelopmentServer {
+    spinner = spinner()
+
     initialize = async () => {
         const http = express()
         const definitions = this.getDefinitions()
@@ -26,6 +29,9 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
             const url = protocol + '://' + req.headers.host + req.originalUrl
 
             try {
+                this.spinner.text = `Compiling`
+                this.spinner.start()
+                
                 const additionsLines = []
 
                 additionsLines.push(`function __setDefinitions() { ${definitions} }`)
@@ -44,6 +50,7 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
                 }
 
                 // res.setHeader('Content-Type', 'text/html')
+                this.spinner.stop()
                 return res.status(200).end(indexHtml)
             } catch (error) {
                 server.ssrFixStacktrace(error)
@@ -55,9 +62,10 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
         return {
             http,
             server,
-            listen: () => {
-                this.events.emit("server_listen")
-                return http.listen(this.config.server?.port ?? 8000)
+            listen: async () => {
+                this.listenPort = await this.findAllocablePort(this.listenPort)
+                this.events.emit("server_listen", this.listenPort)
+                return http.listen(this.listenPort)
             }
         }
     }
