@@ -242,13 +242,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		const App = class extends ClassAggregation(React.Component, ContextedClass, component) {
-			constructor(props) {
-				super(props)
-			}
-		}
-
-		this.__render = props => React.createElement(App, props)
+		this.__render = props => React.createElement(ClassAggregation(component, ContextedClass, React.Component), props)
 	}
 
 	getAppRenders = (key) => {
@@ -301,9 +295,10 @@ class EviteApp extends React.Component {
 }
 
 function CreateEviteApp(component, params) {
-	return class extends ClassAggregation(EviteApp) {
+	return class extends EviteApp {
 		constructor(props) {
 			super(props)
+
 			this.constructorParams = { ...params, ...props }
 			this.registerRender(component)
 		}
