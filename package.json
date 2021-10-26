@@ -15,7 +15,8 @@
     "linkAll": "npm run build && npm run link:dist",
     "link:dist": "cd ./dist && yarn link && cd - && yarn link 'evite'",
     "release": "npm run build && npm publish ./dist",
-    "build": "corenode-cli build --fix --clean && chmod -R 777 dist"
+    "build": "corenode-cli build --fix --clean && chmod -R 777 dist",
+    "dev": "yarn build && yarn local dev --cwd ./examples/react"
   },
   "author": "RageStudio",
   "license": "ISC",
