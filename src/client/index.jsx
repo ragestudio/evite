@@ -1,9 +1,10 @@
 import React from "react"
 import { createBrowserHistory } from "history"
+
 import EventBus from "./eventBus"
-import classAggregation from "./classAggregation"
-import GlobalBindingProvider from "./globalBindingProvider"
-import appendMethodToApp from "./appendMethodToApp"
+import ClassAggregation from "./classAggregation"
+import BindPropsProvider from "./bindPropsProvider"
+import AppendToWindowContext from "./appendToWindowContext"
 import { Provider, Subscribe, createStateContainer } from "./statement"
 
 class IsolatedContext {
@@ -92,15 +93,6 @@ class EviteApp extends React.Component {
 		this.mainContext = new IsolatedContext(this)
 		this.appContext = new IsolatedContext({})
 		this.globalContext = React.createContext(this.mainContext.getProxy())
-
-		// declare events
-		this.eventBus.on("initialization", async () => {
-
-		})
-
-		this.eventBus.on("initialization_done", async () => {
-
-		})
 
 		// append app methods
 		this.appendToWindowContext("connectToGlobalContext", this.connectToGlobalContext)
@@ -250,7 +242,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		const App = class extends classAggregation(React.Component, ContextedClass, component) {
+		const App = class extends ClassAggregation(React.Component, ContextedClass, component) {
 			constructor(props) {
 				super(props)
 			}
@@ -308,8 +300,8 @@ class EviteApp extends React.Component {
 	}
 }
 
-function createEviteApp(component, params) {
-	return class extends classAggregation(EviteApp) {
+function CreateEviteApp(component, params) {
+	return class extends ClassAggregation(EviteApp) {
 		constructor(props) {
 			super(props)
 			this.constructorParams = { ...params, ...props }
@@ -318,5 +310,5 @@ function createEviteApp(component, params) {
 	}
 }
 
-export { EviteApp, createEviteApp, EventBus, classAggregation, GlobalBindingProvider, appendMethodToApp }
+export { EviteApp, CreateEviteApp, EventBus, ClassAggregation, BindPropsProvider, AppendToWindowContext }
 export default EviteApp
