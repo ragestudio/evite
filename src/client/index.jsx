@@ -242,7 +242,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		this.__render = props => React.createElement(ClassAggregation(component, ContextedClass, React.Component), props)
+		this.__render = props => React.createElement(ClassAggregation(component, ContextedClass), props)
 	}
 
 	getAppRenders = (key) => {
