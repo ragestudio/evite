@@ -22,9 +22,23 @@ const testExtension = {
 	],
 }
 
+const asyncExtension = {
+	key: "asynchronousContextLoad",
+	expose: [
+		{
+			initialization: [
+				async (self, main) => {
+					await new Promise(resolve => setTimeout(resolve, 2000))
+				}
+			],
+		},
+	],
+}
+
 class ExampleApp extends React.Component {
 	constructor(props) {
 		super(props)
+
 		this.state = {
 			localCount: 0,
 			quickSum: false,
@@ -32,6 +46,16 @@ class ExampleApp extends React.Component {
 		this.quickSumInterval = null
 	}
 
+	static get renders(){
+		return {
+			initialization: () => {
+				return <div>
+					Starting in 2 seconds
+				</div>
+			}
+		}
+	}
+	
 	toogleQuickSum = (to) => { 
 		this.setState({
 			quickSum: to ?? !this.state.quickSum
@@ -70,10 +94,13 @@ class ExampleApp extends React.Component {
 							{this.state.quickSum ? "Stop" : "Start"} quick sum
 						</button>
 					</div>
+					<div>
+						{this.app.mayonese}
+					</div>
 				</div>
 			</div>
 		)
 	}
 }
 
-export default CreateEviteApp(ExampleApp, {extensions: [testExtension], globalState: {count: 0}})
+export default CreateEviteApp(ExampleApp, {extensions: [testExtension, asyncExtension], })
