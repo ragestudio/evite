@@ -1,7 +1,7 @@
 const thisPkg = require("../../package.json")
-
 const fs = require("fs")
 const path = require("path")
+const net = require("net")
 
 const { findUpSync } = require("corenode/filesystem")
 const { EventEmitter } = require("events")
@@ -9,6 +9,8 @@ const { compileIndexHtmlTemplate } = require("../../lib")
 const { ConfigController } = require("../config.js")
 const { getDefaultAliases } = require("../aliases.js")
 const { getDefaultPlugins } = require("../plugins.js")
+
+const rootPath = path.resolve(__dirname, "../../")
 
 class DevelopmentServer {
     constructor(params) {
@@ -28,16 +30,33 @@ class DevelopmentServer {
         this.config = this.parseConfig(this.config)
 
         this.listenPort = this.config.server.port ?? 8000
-
+        
         this.events = new EventEmitter()
-        this.events.on("server_listen", () => {
-            console.log(`🌐 Listening on port ${this.listenPort}`)
+
+        this.events.on("server_listen", (port) => {
+            console.log(`✅ Listening on port ${port ?? this.listenPort}`)
+            console.log(`\t🔗 http://localhost:${port ?? this.listenPort}`)
+            console.log(`\t🌐 http://0.0.0.0:${port ?? this.listenPort}`)
         })
 
-        this.externals = ["path", "fs"]
-        this.templateContext = Array()
-
         return this
+    }
+
+    findAllocablePort = (port) => {
+        return new Promise((resolve, reject) => {
+            const server = net.createServer()
+            server.on("error", (err) => {
+                if (err.code === "EADDRINUSE") {
+                    resolve(this.findAllocablePort(port + 1))
+                } else {
+                    reject(err)
+                }
+            })
+            server.listen(port, () => {
+                server.close()
+                resolve(port)
+            })
+        })
     }
 
     overrideWithDefaultConfig = (config = {}) => {
@@ -48,10 +67,10 @@ class DevelopmentServer {
 
         if (Array.isArray(config.server?.fs?.allow)) {
             config.server.fs.allow.push(this.cache)
-            config.server.fs.allow.push(path.join(process.cwd(), "node_modules"))
-            config.server.fs.allow.push(path.join(this.cwd, "node_modules"))
+            config.server.fs.allow.push(this.cwd)
+            config.server.fs.allow.push(rootPath)
         }
-
+        
         return config
     }
 
