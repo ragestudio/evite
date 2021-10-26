@@ -73,7 +73,7 @@ class EviteApp extends React.Component {
 		this.windowContext = window.app = Object()
 		this.mainContext = new IsolatedContext(this)
 		this.appContext = new IsolatedContext({})
-		this.globalContext = React.createContext(this.mainContext.getProxy())
+		this.globalContext = React.createContext(this.appContext.getProxy())
 
 		// initializations
 		this.initializationTasks = []
@@ -136,7 +136,7 @@ class EviteApp extends React.Component {
 		}
 
 		// create render
-		const Render = this.compileContextedRender(this.__render)
+		const Render = this.extendWithContext(this.__render)
 		this.__render = props => React.createElement(Render, props)
 
 		// toogle initialized state for start rendering mainFragment
@@ -254,7 +254,7 @@ class EviteApp extends React.Component {
 		return this.windowContext[opts.key]
 	}
 
-	compileContextedRender = base => {
+	extendWithContext = base => {
 		const _this = this
 
 		const ContextedClass = class {
