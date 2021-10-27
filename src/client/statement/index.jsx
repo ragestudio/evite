@@ -134,7 +134,7 @@ export function Provider(props) {
 }
 
 export function createStateContainer(initialState) {
-	return class extends Container {
-		state = initialState ?? {}
+	return new class extends Container {
+		state = { ...initialState }
 	}
 }
