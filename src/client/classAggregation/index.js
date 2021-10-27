@@ -34,30 +34,42 @@ export default (base, ...mixins) => {
             })
 
             if (typeof base.initialize === "function") {
-                base.initialize.apply(this, args)
+                try {
+                    base.initialize.apply(this, args)
+                } catch (error) {
+                    console.error(error)
+                }
             }
 
             if (typeof base.windowContext === "function") {
-                const returnedValues = base.windowContext.apply(this)
-                
-                if (typeof returnedValues === "object") {
-                    const keys = Object.keys(returnedValues)
+                try {
+                    const returnedValues = base.windowContext.apply(this, args)
 
-                    keys.forEach((key) => {
-                        this.contexts.window[key] = returnedValues[key]
-                    })
+                    if (typeof returnedValues === "object") {
+                        const keys = Object.keys(returnedValues)
+
+                        keys.forEach((key) => {
+                            this.contexts.window[key] = returnedValues[key]
+                        })
+                    }
+                } catch (error) {
+                    console.error(error)
                 }
             }
 
             if (typeof base.appContext === "function") {
-                const returnedValues = base.appContext.apply(this)
+                try {
+                    const returnedValues = base.appContext.apply(this, args)
 
-                if (typeof returnedValues === "object") {
-                    const keys = Object.keys(returnedValues)
+                    if (typeof returnedValues === "object") {
+                        const keys = Object.keys(returnedValues)
 
-                    keys.forEach((key) => {
-                        this.contexts.app[key] = returnedValues[key]
-                    })
+                        keys.forEach((key) => {
+                            this.contexts.app[key] = returnedValues[key]
+                        })
+                    }
+                } catch (error) {
+                    console.error(error)
                 }
             }
         }
