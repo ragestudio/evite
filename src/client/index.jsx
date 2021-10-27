@@ -5,7 +5,7 @@ import EventBus from "./eventBus"
 import ClassAggregation from "./classAggregation"
 import BindPropsProvider from "./bindPropsProvider"
 import SetToWindowContext from "./setToWindowContext"
-import { Provider, Subscribe, createStateContainer } from "./statement"
+import { Provider } from "./statement"
 
 class IsolatedContext {
 	constructor(context = {}) {
