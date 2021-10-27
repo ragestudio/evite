@@ -69,11 +69,11 @@ class EviteApp extends React.Component {
 
 		// extensions
 		this.extensionsKeys = []
+
 		// contexts
 		this.windowContext = window.app = Object()
 		this.mainContext = new IsolatedContext(this)
 		this.appContext = new IsolatedContext({})
-		this.globalContext = React.createContext(this.appContext.getProxy())
 
 		// initializations
 		this.initializationTasks = []
@@ -118,10 +118,6 @@ class EviteApp extends React.Component {
 					await task(this.appContext.getProxy(), this.mainContext.getProxy())
 				}
 			}
-		}
-
-		if (typeof this.__render.initialize === "function") {
-			await this.__render.initialize(this.appContext.getProxy(), this.mainContext.getProxy(), this.__render)
 		}
 
 		this.eventBus.emit("initialization_done")
@@ -254,13 +250,14 @@ class EviteApp extends React.Component {
 		return this.windowContext[opts.key]
 	}
 
-	extendWithContext = base => {
-		const _this = this
-
-		const ContextedClass = class {
+	extendWithContext = (base) => {
+		const ContextedClass = (_this) => class {
 			initializer() {
-				this.app = _this.appContext.getProxy()
-				this.mainContext = _this.mainContext.getProxy()
+				this.contexts = {
+					app: _this.appContext.getProxy(),
+					main: _this.mainContext.getProxy(),
+					window: _this.windowContext,
+				}
 
 				_this.appContext.subscribe("set", () => {
 					this.forceUpdate()
@@ -272,7 +269,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		return ClassAggregation(base, ContextedClass)
+		return ClassAggregation(base, ContextedClass(this))
 	}
 
 	getDefinedRenders = (key) => {
@@ -301,9 +298,6 @@ class EviteApp extends React.Component {
 			return null
 		}
 
-		const App = this.__render
-		const GlobalContext = this.globalContext
-
 		return (
 			<Provider>
 				<Subscribe to={[this.globalStateContainer]}>
@@ -311,11 +305,7 @@ class EviteApp extends React.Component {
 						const globalState = globalStateInstance.state
 						const setGlobalState = (...args) => globalStateInstance.setState(...args)
 
-						return (
-							<GlobalContext.Provider value={this.appContext.getProxy()}>
-								<App globalState={globalState} setGlobalState={setGlobalState} />
-							</GlobalContext.Provider>
-						)
+						return this.__render({ globalState, setGlobalState })
 					}}
 				</Subscribe>
 			</Provider>
