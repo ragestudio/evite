@@ -59,7 +59,7 @@ class EviteApp extends React.Component {
 	constructor(props) {
 		super(props)
 
-		// base state
+		// statement
 		this.state = {
 			initialized: false,
 		}
@@ -97,9 +97,6 @@ class EviteApp extends React.Component {
 
 	initialization = async () => {
 		this.eventBus.emit("initialization")
-
-		// create new state container
-		this.globalStateContainer = createStateContainer({ ...this.constructorParams?.globalState })
 
 		// handle constructorParams
 		if (typeof this.constructorParams !== "undefined" && typeof this.constructorParams === "object") {
@@ -246,11 +243,11 @@ class EviteApp extends React.Component {
 			enumerable: opts.enumerable,
 			configurable: opts.locked
 		})
-		
+
 		return this.windowContext[opts.key]
 	}
 
-	extendWithContext = (base) => {
+	extendWithContext = (base, ...aggregations) => {
 		const ContextedClass = (_this) => class {
 			initializer() {
 				this.contexts = {
@@ -258,18 +255,10 @@ class EviteApp extends React.Component {
 					main: _this.mainContext.getProxy(),
 					window: _this.windowContext,
 				}
-
-				_this.appContext.subscribe("set", () => {
-					this.forceUpdate()
-				})
-
-				_this.mainContext.subscribe("set", () => {
-					this.forceUpdate()
-				})
 			}
 		}
 
-		return ClassAggregation(base, ContextedClass(this))
+		return ClassAggregation(base, ContextedClass(this), React.Component, ...aggregations)
 	}
 
 	getDefinedRenders = (key) => {
@@ -300,14 +289,7 @@ class EviteApp extends React.Component {
 
 		return (
 			<Provider>
-				<Subscribe to={[this.globalStateContainer]}>
-					{globalStateInstance => {
-						const globalState = globalStateInstance.state
-						const setGlobalState = (...args) => globalStateInstance.setState(...args)
-
-						return this.__render({ globalState, setGlobalState })
-					}}
-				</Subscribe>
+				{this.__render()}
 			</Provider>
 		)
 	}
