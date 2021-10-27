@@ -32,6 +32,34 @@ export default (base, ...mixins) => {
                     mixin.prototype.initializer.apply(this, args)
                 }
             })
+
+            if (typeof base.initialize === "function") {
+                base.initialize.apply(this, args)
+            }
+
+            if (typeof base.windowContext === "function") {
+                const returnedValues = base.windowContext.apply(this)
+                
+                if (typeof returnedValues === "object") {
+                    const keys = Object.keys(returnedValues)
+
+                    keys.forEach((key) => {
+                        this.contexts.window[key] = returnedValues[key]
+                    })
+                }
+            }
+
+            if (typeof base.appContext === "function") {
+                const returnedValues = base.appContext.apply(this)
+
+                if (typeof returnedValues === "object") {
+                    const keys = Object.keys(returnedValues)
+
+                    keys.forEach((key) => {
+                        this.contexts.app[key] = returnedValues[key]
+                    })
+                }
+            }
         }
     }
 
