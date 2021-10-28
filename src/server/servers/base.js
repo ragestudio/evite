@@ -194,6 +194,22 @@ class DevelopmentServer {
         }
     }
 
+    getDynamicRoutes = () => {
+        const routes = []
+        const routesPath = this.config.dynamicRoutesPath ?? path.resolve(this.src, "pages")
+
+        fs.readdirSync(routesPath).forEach(file => {
+           routes.push( path.resolve(routesPath, file))
+        })
+
+        return routes.reduce((acc, route) => {
+            const pathname = path.basename(route)
+            acc[`/${pathname}`] = route
+
+            return acc
+        }, {})
+    }
+
     getIndexHtmlTemplate = (mainScript) => {
         let template = null
 
