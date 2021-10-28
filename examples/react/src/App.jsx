@@ -1,4 +1,4 @@
-import {CreateEviteApp} from "evite"
+import { CreateEviteApp } from "evite"
 import React from "react"
 
 import "./index.less"
@@ -40,13 +40,13 @@ class ExampleApp extends React.Component {
 		super(props)
 
 		this.state = {
-			localCount: 0,
+			count: 0,
 			quickSum: false,
 		}
 		this.quickSumInterval = null
 	}
 
-	static get initialize() {
+	static initialize() {
 		return async (app, main, self) => {
 			console.log(app)
 			console.log(main)
@@ -54,17 +54,15 @@ class ExampleApp extends React.Component {
 		}
 	}
 
-	static get renders(){
-		return {
-			initialization: () => {
-				return <div>
-					Starting in 2 seconds
-				</div>
-			}
+	static staticRenders = {
+		initialization: () => {
+			return <div>
+				Starting in 2 seconds
+			</div>
 		}
 	}
-	
-	toogleQuickSum = (to) => { 
+
+	toogleQuickSum = (to) => {
 		this.setState({
 			quickSum: to ?? !this.state.quickSum
 		}, () => {
@@ -72,7 +70,7 @@ class ExampleApp extends React.Component {
 				this.quickSumInterval = setInterval(() => {
 					this.sumOne()
 				}, 1)
-			}else {
+			} else {
 				console.log("clearing interval")
 				clearInterval(this.quickSumInterval)
 				this.quickSumInterval = null
@@ -81,16 +79,14 @@ class ExampleApp extends React.Component {
 	}
 
 	sumOne = () => {
-		this.setState({ localCount: this.state.localCount + 1 })
-		this.app.globalCount = Number(this.app.globalCount ?? 0) + 1
+		this.setState({ count: this.state.count + 1 })
 	}
 
 	render() {
 		return (
-			<div className="exampleApp">	
+			<div className="exampleApp">
 				<div className="display">
-					Global: <h1>{this.app.globalCount}</h1>
-					Local: <h1>{this.state.localCount}</h1>
+					<h1>{this.state.count}</h1>
 				</div>
 				<button
 					onClick={this.sumOne}>
@@ -102,13 +98,10 @@ class ExampleApp extends React.Component {
 							{this.state.quickSum ? "Stop" : "Start"} quick sum
 						</button>
 					</div>
-					<div>
-						{this.app.mayonese}
-					</div>
 				</div>
 			</div>
 		)
 	}
 }
 
-export default CreateEviteApp(ExampleApp, {extensions: [testExtension, asyncExtension], })
+export default CreateEviteApp(ExampleApp, { extensions: [testExtension, asyncExtension], })
