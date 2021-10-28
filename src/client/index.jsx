@@ -261,8 +261,8 @@ class EviteApp extends React.Component {
 		return ClassAggregation(base, ContextedClass(this), React.Component, ...aggregations)
 	}
 
-	getDefinedRenders = (key) => {
-		const renders = this.__render?.renders ?? {}
+	getStaticRenders = (key) => {
+		const renders = this.__render?.staticRenders ?? {}
 
 		if (typeof renders === "object") {
 			if (key in renders) {
@@ -278,7 +278,7 @@ class EviteApp extends React.Component {
 		}
 
 		if (!this.state.initialized) {
-			const CustomRender = this.getDefinedRenders("initialization")
+			const CustomRender = this.getStaticRenders("initialization")
 
 			if (typeof CustomRender !== "undefined") {
 				return <CustomRender />
