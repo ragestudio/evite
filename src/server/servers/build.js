@@ -6,6 +6,7 @@ const fse = require('fs-extra')
 
 const { DevelopmentServer } = require('./base.js')
 const buildReactTemplate = require("../renderers/react")
+const { compileIndexHtmlTemplate } = require("../../lib")
 
 class BuildServer extends DevelopmentServer {
     constructor(params) {
@@ -35,8 +36,9 @@ class BuildServer extends DevelopmentServer {
             throw new Error("Entry is not defined")
         }
 
-        const outputPath = path.resolve((this.config.build.outDir ?? "out"))
+        const outputPath = path.resolve((this.config.build.outDir ?? path.join(this.cwd, "out")))
         const buildPath = path.resolve(this.cwd, ".tmp")
+        const definitions = this.getDefinitions()
 
         // prepare directories before build
         await this.makeDirectories([outputPath, buildPath])
@@ -44,19 +46,20 @@ class BuildServer extends DevelopmentServer {
         // copy entire src folder to build folder
         await fse.copySync(this.src, buildPath)
 
-        // write index.html
-        // TODO: Handle custom index.html entry
-        const indexHtml = this.getIndexHtmlTemplate("./index.jsx")
-        await fs.writeFileSync(path.join(buildPath, "index.html"), indexHtml)
-
         // write project main files
-        if (typeof this.config.entryScript !== "undefined") {
-            const template = await fs.readFileSync(this.config.entryScript, "utf8")
-            await fs.writeFileSync(path.join(buildPath, "index.jsx"), template)
-        } else {
-            const definitions = await this.compileDefinitions(buildPath)
-            await buildReactTemplate({ main: `./${path.basename(this.entry)}`, file: "index.jsx", root: buildPath }, [definitions]).write()
-        }
+        const additionsLines = []
+
+        // set definitions
+        additionsLines.push(`function __setDefinitions() { ${definitions} }`)
+        additionsLines.push(`__setDefinitions()`)
+
+        // write templates
+        // TODO: Handle custom index.html entry
+        const template = await buildReactTemplate({ main: this.entry }, additionsLines)
+        const htmlTemplate = compileIndexHtmlTemplate({ head: ["./index.jsx"] })
+
+        await fs.writeFileSync(path.join(buildPath, "index.jsx"), template.construct())
+        await fs.writeFileSync(path.join(buildPath, "index.html"), htmlTemplate)
 
         // override config
         this.config.root = buildPath
