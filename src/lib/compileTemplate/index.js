@@ -1,4 +1,4 @@
-const { CacheObject } = require("../../lib")
+const { CacheObject } = require("..")
 
 class ObjectedVariable {
     constructor(type, key, value, address) {
