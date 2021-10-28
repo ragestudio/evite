@@ -1,13 +1,9 @@
 const fs = require("fs")
-const path = require("path")
 const vite = require("vite")
-const rimraf = require("rimraf")
-const fse = require('fs-extra')
 const chalk = require("chalk")
 
 const { DevelopmentServer } = require('./base.js')
 const { buildHtml, compileTemplate } = require("../../lib")
-const buildReactTemplate = require("../renderers/react")
 
 function ansiRegex({ onlyFirst = false } = {}) {
     const pattern = [
