@@ -3,14 +3,12 @@ const { DevelopmentServer } = require('./base')
 const { compileIndexHtmlTemplate } = require("../../lib")
 const buildReactTemplate = require("../renderers/react")
 const express = require('express')
-const spinner = require("corenode/libs/cli-spinner").default
 
 class ReactViteDevelopmentServer extends DevelopmentServer {
-    spinner = spinner()
-
     initialize = async () => {
         const http = express()
         const definitions = this.getDefinitions()
+        const dynamicRoutes = this.getDynamicRoutes()
 
         if (typeof this.config.build.rollupOptions === "undefined") {
             this.config.build.rollupOptions = Object()
@@ -21,6 +19,27 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
         this.config.server.middlewareMode = "ssr"
 
         const server = await vite.createServer(this.config)
+        const additionsLines = []
+        
+        // set definitions
+        additionsLines.push(`function __setDefinitions() { ${definitions} }`)
+        additionsLines.push(`__setDefinitions()`)
+        
+        // set dynamic routes
+        additionsLines.push(`function __setDynamicRoutes() { window._dynamicRoutes = ${JSON.stringify(dynamicRoutes)} }`)
+        additionsLines.push(`__setDynamicRoutes()`)
+        
+        // write template
+        const template = await buildReactTemplate({ main: this.entry }, additionsLines)
+        const htmlTemplate = compileIndexHtmlTemplate({ head: [template.file.output] })
+
+        // template.function("__resolveDynamicRoute", ["from"], `
+        //     console.log(arguments.callee.caller.toString())
+        // `)
+
+        // template.line("window.__resolveDynamicRoute = __resolveDynamicRoute")
+
+        template.write()
 
         http.use(server.middlewares)
         http.use('*', async (req, res) => {
@@ -29,28 +48,13 @@ class ReactViteDevelopmentServer extends DevelopmentServer {
             const url = protocol + '://' + req.headers.host + req.originalUrl
 
             try {
-                this.spinner.text = `Compiling`
-                this.spinner.start()
-                
-                const additionsLines = []
-
-                additionsLines.push(`function __setDefinitions() { ${definitions} }`)
-                additionsLines.push(`__setDefinitions()`)
-
-                const template = await buildReactTemplate({ main: this.entry }, additionsLines)
-                const htmlTemplate = compileIndexHtmlTemplate({ head: [template.file.output] })
-
                 const indexHtml = await server.transformIndexHtml(url, htmlTemplate)
-
-                // write file
-                template.write()
 
                 if (isRedirect(req)) {
                     return res.end()
                 }
 
                 // res.setHeader('Content-Type', 'text/html')
-                this.spinner.stop()
                 return res.status(200).end(indexHtml)
             } catch (error) {
                 server.ssrFixStacktrace(error)
