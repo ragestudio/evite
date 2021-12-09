@@ -4,7 +4,7 @@ import { BrowserRouter, useHistory } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
 import { deserializeState } from "../serialization"
 import { withoutSuffix } from '../url'
-import { useClientRedirect, createRouter } from '../router'
+import { useClientRedirect, createRouter } from '../ssrRouter'
 
 export const SSR_CONTEXT = reactCreateContext(null)
 
