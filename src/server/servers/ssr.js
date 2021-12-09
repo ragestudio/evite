@@ -165,13 +165,17 @@ class SSRReactServer extends SSRServer {
         }
 
         // fix definitions
-        const definitions = await this.compileDefinitions()
+        const definitions = await this.getDefinitions()
 
         // create and build templates
         this.serverTemplate = new compileTemplate({ locate: "__server.jsx" })
         this.clientTemplate = new compileTemplate({ locate: "__client.jsx" })
 
         //* client
+        // set definitions
+        this.clientTemplate.line(`function __setDefinitions() { ${definitions} }`)
+        this.clientTemplate.line(`__setDefinitions()`)
+
         this.clientTemplate.import("React", "react")
         this.clientTemplate.import("ReactDOM", "react-dom")
         this.clientTemplate.import("{ BrowserRouter }", "react-router-dom")
@@ -187,7 +191,9 @@ class SSRReactServer extends SSRServer {
 
         //* server
         // load definitions context (fix window definitions context)
-        this.clientTemplate.line(definitions)
+
+        //this.serverTemplate.line(`function __setDefinitions() { ${definitions} }`)
+        //this.serverTemplate.line(`__setDefinitions()`)
 
         this.serverTemplate.import("React", "react")
         this.serverTemplate.import("{ createClientEntry }", "evite/client/ssr")
