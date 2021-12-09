@@ -37,8 +37,6 @@ class DevelopmentServer {
             console.log(`\t🌐 http://0.0.0.0:${port ?? this.listenPort}`)
         })
 
-        console.log(this.src)
-
         return this
     }
 
