@@ -1,4 +1,4 @@
-import { CreateEviteApp } from "evite"
+import { CreateEviteApp } from "../../../packages/lib/src"
 import React from "react"
 
 import "./index.less"

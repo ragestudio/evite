@@ -1,6 +1,6 @@
 const vite = require('vite')
 const { DevelopmentServer } = require('./base')
-const { compileIndexHtmlTemplate } = require("../../lib")
+const { compileIndexHtmlTemplate } = require("../lib")
 const buildReactTemplate = require("../renderers/react")
 const express = require('express')
 

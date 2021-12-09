@@ -3,7 +3,7 @@ const vite = require("vite")
 const chalk = require("chalk")
 
 const { DevelopmentServer } = require('./base.js')
-const { buildHtml, compileTemplate } = require("../../lib")
+const { buildHtml, compileTemplate } = require("../lib")
 
 function ansiRegex({ onlyFirst = false } = {}) {
     const pattern = [
