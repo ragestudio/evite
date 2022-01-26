@@ -1,4 +1,4 @@
-const { compileTemplate } = require("../../lib")
+const { compileTemplate } = require("../lib")
 
 module.exports = (params = {}, additions) => {
   if (!params.main) {

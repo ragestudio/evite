@@ -6,7 +6,7 @@ const fse = require('fs-extra')
 
 const { DevelopmentServer } = require('./base.js')
 const buildReactTemplate = require("../renderers/react")
-const { compileIndexHtmlTemplate } = require("../../lib")
+const { compileIndexHtmlTemplate } = require("../lib")
 
 class BuildServer extends DevelopmentServer {
     constructor(params) {

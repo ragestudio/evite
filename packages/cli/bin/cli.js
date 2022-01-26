@@ -1,6 +1,6 @@
 #!/usr/bin/env corenode-node
 const { Command, program } = require("commander")
-const { SSRReactServer, ReactViteDevelopmentServer, BuildServer } = require("../server/index.js")
+const { SSRReactServer, ReactViteDevelopmentServer, BuildServer } = require("../dist/index.js")
 
 const eviteServers = {
     "ssr-react": async (...context) => {

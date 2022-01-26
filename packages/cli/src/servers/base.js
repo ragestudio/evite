@@ -5,19 +5,17 @@ const net = require("net")
 
 const { findUpSync } = require("corenode/filesystem")
 const { EventEmitter } = require("events")
-const { compileIndexHtmlTemplate } = require("../../lib")
+const { compileIndexHtmlTemplate } = require("../lib")
 const { ConfigController } = require("../config.js")
 const { getDefaultAliases } = require("../aliases.js")
 const { getDefaultPlugins } = require("../plugins.js")
-
-const rootPath = path.resolve(__dirname, "../../")
 
 class DevelopmentServer {
     constructor(params) {
         this.params = { ...params }
 
         this.cwd = this.params.cwd ?? process.cwd()
-        this.src = this.params.src ?? path.join(this.cwd, "src")
+        this.src = this.params.src ?? path.resolve(this.cwd, "src")
         this.entry = this.params.entry ?? findUpSync(["App.jsx", "app.jsx", "App.js", "app.js", "App.ts", "app.ts"], { cwd: this.src })
         this.cache = global.cachePath = path.join(path.dirname(__dirname), ".cache")
         
@@ -68,7 +66,6 @@ class DevelopmentServer {
         if (Array.isArray(config.server?.fs?.allow)) {
             config.server.fs.allow.push(this.cache)
             config.server.fs.allow.push(this.cwd)
-            config.server.fs.allow.push(rootPath)
         }
         
         return config
