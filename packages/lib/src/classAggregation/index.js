@@ -31,6 +31,22 @@ export default (base, ...mixins) => {
                 if (typeof mixin.prototype.initializer === "function") {
                     mixin.prototype.initializer.apply(this, args)
                 }
+
+                if (typeof mixin.prototype.selfEnqueueFnApply === "function") {
+                    if (typeof this.__fnHandlers !== "object") {
+                        this.__fnHandlers = {}
+                    }
+
+                    const handlers = mixin.prototype.selfEnqueueFnApply.apply(this, args)
+
+                    if (typeof handlers === "object") {
+                        const keys = Object.keys(handlers)
+
+                        keys.forEach((key) => {
+                            this.__fnHandlers[key] = handlers[key]
+                        })
+                    }
+                }
             })
 
             if (typeof base.initialize === "function") {
