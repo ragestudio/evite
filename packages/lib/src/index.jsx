@@ -8,7 +8,7 @@ import SetToWindowContext from "./setToWindowContext"
 import IsolatedContext from "./isolatedContext"
 import { Provider } from "./statement"
 
-class EviteApp extends React.Component {
+class EviteApp extends React.PureComponent {
 	constructor(props) {
 		super(props)
 
@@ -211,7 +211,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		return ClassAggregation(base, ContextedClass(this), React.Component, ...aggregations)
+		return ClassAggregation(base, ContextedClass(this), React.PureComponent, ...aggregations)
 	}
 
 	getStaticRenders = (key) => {
