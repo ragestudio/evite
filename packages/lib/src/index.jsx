@@ -49,7 +49,7 @@ class EviteApp extends React.Component {
 	}
 
 	initialization = async () => {
-		this.eventBus.emit("initialization")
+		this.eventBus.emit("APP_INITIALIZATION_START")
 
 		// handle constructorParams
 		if (typeof this.constructorParams !== "undefined" && typeof this.constructorParams === "object") {
@@ -70,7 +70,7 @@ class EviteApp extends React.Component {
 			}
 		}
 
-		this.eventBus.emit("initialization_done")
+		this.eventBus.emit("APP_INITIALIZATION_DONE")
 	}
 
 	componentDidMount = async () => {
@@ -220,6 +220,16 @@ class EviteApp extends React.Component {
 		if (typeof renders === "object") {
 			if (key in renders) {
 				return renders[key]
+			}
+		}
+	}
+
+	getStaticEventsHandlers = (key) => {
+		const events = this.__render?.eventsHandler ?? {}
+
+		if (typeof events === "object") {
+			if (key in events) {
+				return events[key]
 			}
 		}
 	}
