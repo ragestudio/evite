@@ -32,7 +32,7 @@ class EviteApp extends React.PureComponent {
 	constructor(props) {
 		super(props)
 
-		WINDOW.__eviteVersion = pkgJson.version
+		window.__eviteVersion = pkgJson.version
 
 		this.constructorParams = {}
 
