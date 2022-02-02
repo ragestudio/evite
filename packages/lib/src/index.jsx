@@ -1,5 +1,6 @@
 import React from "react"
 import { createBrowserHistory } from "history"
+import pkgJson from "../package.json"
 
 import EventBus from "./eventBus"
 import ClassAggregation from "./classAggregation"
@@ -30,6 +31,9 @@ const ContextedClass = (_this, self) => class {
 class EviteApp extends React.PureComponent {
 	constructor(props) {
 		super(props)
+
+		WINDOW.__eviteVersion = pkgJson.version
+
 		this.constructorParams = {}
 
 		// statement
