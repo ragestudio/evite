@@ -1,19 +1,18 @@
-import React from 'react'
-import { objectToArrayMap } from "@corenode/utils"
+import React from "react"
 
 export default (props) => {
     const context = {}
 
-    objectToArrayMap(props).forEach((prop) => {
-        if (prop.key === "children") {
+    Object.keys(props).forEach((key) => {
+        if (key === "children") {
             return false
         }
 
-        if (typeof prop.value === "function") {
-            prop.value = prop.value()
+        if (typeof props[key] === "function") {
+            props[key] = props[key]()
         }
 
-        context[prop.key] = prop.value
+        context[key] = props[key]
     })
 
     if (Array.isArray(props.children)) {
