@@ -1,6 +1,6 @@
 {
   "name": "evite-cli",
-  "version": "0.9.5",
+  "version": "0.10.1",
   "files": [
     "bin",
     "dist"
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "local": "./bin/cli.js",
-    "build": "corenode-cli build --fix --clean && chmod -R 777 dist",
+    "build": "corenode-cli build --fix --clean",
     "dev": "yarn build && yarn local dev --cwd ../../examples/react"
   },
   "author": "RageStudio",

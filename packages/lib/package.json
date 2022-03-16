@@ -1,11 +1,10 @@
 {
   "name": "evite",
-  "version": "0.9.5",
+  "version": "0.10.1",
   "files": [
     "**/**"
   ],
   "main": "./src/index.jsx",
-  "author": "RageStudio",
   "license": "ISC",
   "dependencies": {
     "@corenode/utils": "0.28.26",
@@ -13,10 +12,12 @@
     "@loadable/component": "5.15.2",
     "history": "5.2.0",
     "less": "4.1.2",
+    "object-observer": "^5.0.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-helmet": "6.1.0",
     "react-helmet-async": "1.2.2",
+    "react-inspector": "^5.1.1",
     "react-router-dom": "6.2.1"
   }
 }
