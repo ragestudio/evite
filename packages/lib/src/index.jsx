@@ -110,33 +110,50 @@ class EviteApp extends React.Component {
 	async __earlyInitializate() {
 		this.eventBus.emit("APP_INITIALIZATION_START")
 
-		// initialize attach base extensions
+		let extensionsLoad = []
 		let extensionsInitializators = []
 
-		if (Array.isArray(this.props.children.baseExtensions)) {
-			for await (let extension of this.props.children.baseExtensions) {
-				const initializationPromise = new Promise(async (resolve, reject) => {
-					await this.initializeExtension(extension)
-						.then(() => {
-							this.eventBus.emit(`EXTENSION_ATTACHED`, extension.name)
+		// extend with defined base extensions
+		if (typeof this.props.children.baseExtensions !== "undefined" && Array.isArray(this.props.children.baseExtensions)) {
+			extensionsLoad = [...extensionsLoad, ...this.props.children.baseExtensions]
+		}
 
-							return resolve()
-						})
-						.catch((rejection) => {
-							console.error(`[EVITE APP] Failed to attach base extension > \n\n`, rejection)
+		// try to load from @extensions
+		try {
+			const extensions = import.meta.glob('/src/extensions/*.extension.js')
 
-							if (rejection.id) {
-								this.eventBus.emit(`EXTENSION_${rejection.id}_REJECTED`, rejection)
-							}
+			for await (let [uri, extension] of Object.entries(extensions)) {
+				extension = await extension()
+				extension = extension.default || extension
 
-							this.eventBus.emit(`EXTENSION_REJECTED`, rejection)
-
-							return resolve()
-						})
-				})
-
-				extensionsInitializators.push(initializationPromise)
+				extensionsLoad.push(extension)
 			}
+		} catch (error) {
+			console.log(error)
+		}
+
+		for await (let extension of extensionsLoad) {
+			const initializationPromise = new Promise(async (resolve, reject) => {
+				await this.initializeExtension(extension)
+					.then(() => {
+						this.eventBus.emit(`EXTENSION_ATTACHED`, extension.name)
+
+						return resolve()
+					})
+					.catch((rejection) => {
+						console.error(`[EVITE APP] Failed to attach base extension > \n\n`, rejection)
+
+						if (rejection.id) {
+							this.eventBus.emit(`EXTENSION_${rejection.id}_REJECTED`, rejection)
+						}
+
+						this.eventBus.emit(`EXTENSION_REJECTED`, rejection)
+
+						return resolve()
+					})
+			})
+
+			extensionsInitializators.push(initializationPromise)
 		}
 
 		await Promise.all(extensionsInitializators)
@@ -250,7 +267,7 @@ class EviteApp extends React.Component {
 			}
 
 			// await to extension initializer
-			await extension.initializer()
+			await extension.__initializer()
 
 			// expose context to app context
 			if (typeof extension.expose === "object") {
