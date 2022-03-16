@@ -8,7 +8,7 @@ import BindPropsProvider from "./bindPropsProvider"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 
-import { EventBus, SetToWindowContext, ContextedClass } from "./internals"
+import { EventBus, SetToWindowContext } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
