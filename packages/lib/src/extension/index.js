@@ -10,7 +10,7 @@ export default class EviteExtension {
         return this
     }
 
-    initializer() {
+    __initializer() {
         return new Promise(async (resolve, reject) => {
             if (Array.isArray(this.depends)) {
                 this.depends.forEach((dependency) => {
