@@ -168,7 +168,7 @@ class EviteApp extends React.Component {
 		}
 
 		// initialize children
-		if (typeof this.props.children.initialize !== "undefined") {
+		if (typeof this.props.children.initialize === "function") {
 			await this.props.children.initialize.apply(this.IsolatedAppContext.getProxy())
 		}
 
@@ -284,7 +284,11 @@ class EviteApp extends React.Component {
 			// set window context
 			if (typeof extension.window === "object") {
 				Object.keys(extension.window).forEach((key) => {
-					this.setToWindowContext({ key }, extension.window[key].bind(this.IsolatedMainContext.getProxy()))
+					if (typeof extension.window[key] === "function") {
+						extension.window[key].bind(this.IsolatedMainContext.getProxy())
+					}
+
+					this.setToWindowContext({ key }, extension.window[key])
 				})
 			}
 
