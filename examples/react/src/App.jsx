@@ -14,7 +14,7 @@ class GoodExtensionTest extends Extension {
 	expose = {
 		testMethod: function () {
 			console.log(this)
-			window.alert("good daam it")
+			window.alert("this works")
 		}
 	}
 }
