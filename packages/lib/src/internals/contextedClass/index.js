@@ -1,9 +1,7 @@
-export default (_this, self) => class {
+export default (_this, self, contexts) => class {
     initializer() {
         this.contexts = {
-            app: _this.appContext.getProxy(),
-            main: _this.mainContext.getProxy(),
-            window: _this.windowContext,
+            ...contexts,
         }
 
         this.self = self
