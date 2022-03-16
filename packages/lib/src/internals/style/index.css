@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+
+.__eviteCrash {
+    position: absolute;
+
+    display        : flex;
+    flex-direction : column;
+    justify-content: center;
+
+    top : 0;
+    left: 0;
+
+    width : 80vw;
+    height: fit-content;
+
+    margin : 10px;
+    padding: 20px;
+
+    border-radius: 8px;
+
+    font-family     : "DM Mono", monospace;
+    background-color: white;
+    color           : #2d2d2d;
+}
+
+.__eviteCrash h1 {
+    margin       : 0;
+    margin-bottom: 10px;
+}
+
+.__eviteCrash p {
+    margin: 0;
+}
+
+.__eviteCrash .description {
+    margin: 40px 0;
+}
+
+.__eviteCrash .description code {
+    background-color: #2d2d2d;
+    color           : white;
+
+    padding: 30px 10px;
+
+    border-radius: 3px;
+}

@@ -1,0 +1,61 @@
+.__debugWindow {
+    font-family: "DM Mono", monospace;
+
+    position: fixed;
+    top     : 0;
+    left    : 0;
+
+    background-color: rgba(100%, 100%, 100%, 0.3);
+    color           : #000;
+
+    width : 100vw;
+    height: fit-content;
+
+    padding: 10px;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    span,
+    p {
+        margin: 0;
+    }
+
+    .header {
+        margin-bottom: 20px;
+    }
+
+    .section {
+        padding: 0 10px;
+
+        .label {
+            font-weight   : bold;
+            letter-spacing: 4px;
+            margin-bottom : 10px;
+        }
+
+        .content {
+            font-size  : 14px;
+            margin-left: 10px;
+
+            .entry {
+                display: flex;
+
+                .key {
+                    flex       : 1;
+                    font-weight: bold;
+                    color      : #000;
+                }
+
+                .value {
+                    word-break: break-all;
+                    flex : 2;
+                    color: #000;
+                }
+            }
+        }
+    }
+}
