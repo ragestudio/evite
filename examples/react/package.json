@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "react": "17.0.2",
-    "evite": "^0.9.5"
+    "evite": "0.10.2"
   }
 }

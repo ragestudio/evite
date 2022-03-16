@@ -1,4 +1,4 @@
-import { CreateEviteApp, Extension } from "../../../packages/lib/src"
+import { CreateEviteApp, Extension } from "evite"
 
 import React from "react"
 
@@ -7,7 +7,11 @@ import "./index.less"
 class GoodExtensionTest extends Extension {
 	initializers = [
 		async () => {
+			console.log(this)
 			await new Promise(resolve => setTimeout(resolve, 2000))
+		},
+		function(a) {
+			console.log(this, a)
 		}
 	]
 
