@@ -1,38 +1,22 @@
-import { CreateEviteApp } from "../../../packages/lib/src"
+import { CreateEviteApp, Extension } from "../../../packages/lib/src"
+
 import React from "react"
 
 import "./index.less"
 
-const testExtension = {
-	key: "test",
-	expose: [
-		{
-			initialization: [
-				(self, main) => {
-					main.setToAppContext("setTest", () => {
-						self.test = Math.random()
-					})
+class GoodExtensionTest extends Extension {
+	initializers = [
+		async () => {
+			await new Promise(resolve => setTimeout(resolve, 2000))
+		}
+	]
 
-					main.setToWindowContext("setTest", self.setTest)
-
-					console.log("Test extension initialized")
-				}
-			],
-		},
-	],
-}
-
-const asyncExtension = {
-	key: "asynchronousContextLoad",
-	expose: [
-		{
-			initialization: [
-				async (self, main) => {
-					await new Promise(resolve => setTimeout(resolve, 2000))
-				}
-			],
-		},
-	],
+	expose = {
+		testMethod: function () {
+			console.log(this)
+			window.alert("good daam it")
+		}
+	}
 }
 
 class ExampleApp extends React.Component {
@@ -46,13 +30,9 @@ class ExampleApp extends React.Component {
 		this.quickSumInterval = null
 	}
 
-	static initialize() {
-		return async (app, main, self) => {
-			console.log(app)
-			console.log(main)
-			console.log(self)
-		}
-	}
+	static debugMode = true
+
+	static baseExtensions = [GoodExtensionTest,]
 
 	static staticRenders = {
 		initialization: () => {
@@ -60,6 +40,14 @@ class ExampleApp extends React.Component {
 				Starting in 2 seconds
 			</div>
 		}
+	}
+
+	static initialize() {
+		console.log(this)
+	}
+
+	componentDidMount = () => {
+		console.log(this)
 	}
 
 	toogleQuickSum = (to) => {
@@ -98,10 +86,15 @@ class ExampleApp extends React.Component {
 							{this.state.quickSum ? "Stop" : "Start"} quick sum
 						</button>
 					</div>
+					<div>
+						<button onClick={() => window.location.reload()}>
+							reload
+						</button>
+					</div>
 				</div>
 			</div>
 		)
 	}
 }
 
-export default CreateEviteApp(ExampleApp, { extensions: [testExtension, asyncExtension], })
+export default CreateEviteApp(ExampleApp)

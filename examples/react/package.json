@@ -1,0 +1,12 @@
+{
+  "name": "vite-react-example",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "start": "vite"
+  },
+  "dependencies": {
+    "react": "17.0.2",
+    "evite": "^0.9.5"
+  }
+}
