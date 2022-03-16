@@ -271,7 +271,6 @@ class EviteApp extends React.Component {
 				})
 			}
 
-
 			// attach
 			this.ATTACHED_EXTENSIONS.push(extension.constructor.name)
 
