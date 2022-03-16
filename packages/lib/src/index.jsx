@@ -1,53 +1,41 @@
 import React from "react"
+import ReactDOM from "react-dom"
 import { createBrowserHistory } from "history"
-import pkgJson from "../package.json"
+import { Observable } from "object-observer"
 
-import EventBus from "./eventBus"
 import ClassAggregation from "./classAggregation"
 import BindPropsProvider from "./bindPropsProvider"
-import SetToWindowContext from "./setToWindowContext"
 import IsolatedContext from "./isolatedContext"
-import { Provider } from "./statement"
+import Extension from "./extension"
 
-const ContextedClass = (_this, self) => class {
-	initializer() {
-		this.contexts = {
-			app: _this.appContext.getProxy(),
-			main: _this.mainContext.getProxy(),
-			window: _this.windowContext,
-		}
+import { EventBus, SetToWindowContext, ContextedClass } from "./internals"
 
-		this.self = self
-		this.eventBus = this.contexts.main.eventBus
+import { DebugWindow } from "./internals/debug"
 
-		if (typeof self.eventsHandlers === "object") {
-			Object.keys(self.eventsHandlers).forEach((event) => {
-				this.eventBus.on(event, self.eventsHandlers[event].bind(this))
-			})
-		}
-	}
-}
+import pkgJson from "../package.json"
 
-class EviteApp extends React.PureComponent {
+import "./internals/style/index.css"
+
+class EviteApp extends React.Component {
 	constructor(props) {
 		super(props)
 
-		window.__eviteVersion = pkgJson.version
+		// extesions statements
+		this.ATTACHED_EXTENSIONS = Observable.from([])
 
-		this.constructorParams = {}
-
-		// statement
-		this.state = {
-			APP_INITIALIZATION: false,
-			APP_INITIALIZATION_TASKS: [],
-			EXTENSIONS_KEYS: [],
-			RENDER_COMPONENT: null,
-		}
+		Observable.observe(this.ATTACHED_EXTENSIONS, (changes) => {
+			changes.forEach((change) => {
+				// update this.state.ATTACHED_EXTENSIONS with change.object value
+				this.setState({
+					ATTACHED_EXTENSIONS: Array.from(change.object)
+				})
+			})
+		})
 
 		// contexts
 		this.windowContext = window.app = Object()
-		this.mainContext = new IsolatedContext(this)
-		this.appContext = new IsolatedContext({})
+		this.IsolatedMainContext = new IsolatedContext(this)
+		this.IsolatedAppContext = new IsolatedContext({})
 
 		// controllers
 		this.history = this.setToWindowContext({ key: "history", locked: true }, createBrowserHistory())
@@ -55,50 +43,119 @@ class EviteApp extends React.PureComponent {
 
 		// append app methods
 		this.setToWindowContext({ key: "connectToGlobalContext", locked: true }, this.connectToGlobalContext)
+		this.setToWindowContext({ key: "__eviteVersion", locked: true }, pkgJson.version)
+
+		// internal events
+		this.eventBus.on("APP_INITIALIZATION_START", async () => {
+			await this.setState({ LOAD_STATE: "early" })
+
+			await this.setState({ INITIALIZATION_START: performance.now() })
+		})
+		this.eventBus.on("APP_INITIALIZATION_DONE", async () => {
+			const time = performance.now()
+
+			await this.setState({ INITIALIZATION_STOP: time })
+
+			if (this.state.INITIALIZATION_START) {
+				await this.setState({ INITIALIZATION_TOOKS: time - this.state.INITIALIZATION_START })
+			}
+
+			await this.setState({ LOAD_STATE: "done" })
+		})
+		this.eventBus.on("APP_INITIALIZATION_CRASH", async () => {
+			await this.setState({ LOAD_STATE: "crashed" })
+		})
 	}
 
-	// INITIALIZATION & LIFECYCLE CONTROL
-	componentDidMount = () => this.initialize()
+	state = {
+		LOAD_STATE: "early",
+		CRASH: null,
 
-	initialize = async () => {
+		ATTACHED_EXTENSIONS: [], // do not update this state directly, use this.ATTACHED_EXTENSIONS observer instead
+		REJECTED_EXTENSIONS: [],
+
+		INITIALIER_TASKS: [],
+	}
+
+	componentDidMount = async () => {
+		try {
+			await this.__earlyInitializate()
+		} catch (error) {
+			// handle crash
+			this.eventBus.emit("APP_INITIALIZATION_CRASH", error)
+
+			console.error(`[EVITE APP] Crashed during initialization > \n\n`, error)
+
+			await this.setState({ CRASH: error })
+		}
+	}
+
+	componentDidUpdate = async () => {
+		if (this.props.children.debugMode) {
+			let elementContainer = document.getElementById("debug-window")
+
+			if (!elementContainer) {
+				elementContainer = document.createElement("div")
+
+				elementContainer.id = "debug-window"
+				elementContainer.className = "__debugWindow"
+
+				document.body.appendChild(elementContainer)
+			}
+
+			ReactDOM.render(<DebugWindow cntx={this} />, document.getElementById("debug-window"))
+		}
+	}
+
+	async __earlyInitializate() {
 		this.eventBus.emit("APP_INITIALIZATION_START")
-		this.toogleInitializationState(true)
 
-		// handle constructorParams
-		if (typeof this.constructorParams !== "undefined" && typeof this.constructorParams === "object") {
-			// attach extensions
-			if (Array.isArray(this.constructorParams.extensions)) {
-				for await (let extension of this.constructorParams.extensions) {
-					await this.attachExtension(extension)
-				}
+		// initialize attach base extensions
+		let extensionsInitializators = []
+
+		if (Array.isArray(this.props.children.baseExtensions)) {
+			for await (let extension of this.props.children.baseExtensions) {
+				const initializationPromise = new Promise(async (resolve, reject) => {
+					await this.initializeExtension(extension)
+						.then(() => {
+							this.eventBus.emit(`EXTENSION_ATTACHED`, extension.name)
+
+							return resolve()
+						})
+						.catch((rejection) => {
+							console.error(`[EVITE APP] Failed to attach base extension > \n\n`, rejection)
+
+							if (rejection.id) {
+								this.eventBus.emit(`EXTENSION_${rejection.id}_REJECTED`, rejection)
+							}
+
+							this.eventBus.emit(`EXTENSION_REJECTED`, rejection)
+
+							return resolve()
+						})
+				})
+
+				extensionsInitializators.push(initializationPromise)
 			}
 		}
+
+		await Promise.all(extensionsInitializators)
 
 		// perform tasks
-		if (this.state.APP_INITIALIZATION_TASKS) {
-			for await (let task of this.state.APP_INITIALIZATION_TASKS) {
+		if (this.state.INITIALIER_TASKS) {
+			for await (let task of this.state.INITIALIER_TASKS) {
 				if (typeof task === "function") {
-					await task(this.appContext.getProxy(), this.mainContext.getProxy())
+					await task(this.IsolatedAppContext.getProxy(), this.IsolatedMainContext.getProxy())
 				}
 			}
 		}
 
-		// if not render method, set children as mainFragment
-		if (!this.constructorParams.render && this.props.children) {
-			this.constructorParams.render = this.props.children
+		// initialize children
+		if (typeof this.props.children.initialize !== "undefined") {
+			await this.props.children.initialize.apply(this.IsolatedAppContext.getProxy())
 		}
 
-		let RENDER_COMPONENT = ClassAggregation(
-			this.constructorParams.render,
-			React.PureComponent,
-			ContextedClass(this, this.constructorParams.render),
-		)
-
-		// update render component
-		await this.setState({ RENDER_COMPONENT: RENDER_COMPONENT })
-
 		this.eventBus.emit("APP_INITIALIZATION_DONE")
-		this.toogleInitializationState(false)
 	}
 
 	appendToInitializer = (task) => {
@@ -112,14 +169,8 @@ class EviteApp extends React.PureComponent {
 
 		tasks.forEach((_task) => {
 			if (typeof _task === "function") {
-				this.setState({ APP_INITIALIZATION_TASKS: [...this.state.APP_INITIALIZATION_TASKS, _task] })
+				this.setState({ INITIALIER_TASKS: [...this.state.INITIALIER_TASKS, _task] })
 			}
-		})
-	}
-
-	toogleInitializationState = (to) => {
-		this.setState({
-			APP_INITIALIZATION: to ?? !this.state.APP_INITIALIZATION
 		})
 	}
 
@@ -145,16 +196,8 @@ class EviteApp extends React.PureComponent {
 		return context
 	}
 
-	connectToGlobalContext = (component) => {
-		return React.createElement(this.globalContext.Consumer, null, context => {
-			return React.createElement(component, {
-				...context,
-			})
-		})
-	}
-
 	setToAppContext = (key, method) => {
-		this.appContext.getProxy()[key] = method.bind(this.mainContext.getProxy())
+		this.IsolatedAppContext.getProxy()[key] = method.bind(this)
 	}
 
 	setToWindowContext = (params = {}, value, ...args) => {
@@ -186,101 +229,107 @@ class EviteApp extends React.PureComponent {
 	}
 
 	// EXTENSIONS CONTROL
-	attachExtension = (extension) => {
-		if (typeof extension.key !== "string") {
-			console.error("Extensions must contain an extension key")
-			return false
-		}
+	initializeExtension = (extension) => {
+		return new Promise(async (resolve, reject) => {
+			if (typeof extension !== "function") {
+				return reject({
+					reason: "EXTENSION_NOT_VALID_CLASS",
+				})
+			}
 
-		if (typeof extension.expose !== "undefined") {
-			let exposeArray = []
+			extension = new extension(this.IsolatedAppContext.getProxy(), this.IsolatedMainContext.getProxy())
 
-			if (Array.isArray(extension.expose)) {
-				exposeArray = extension.expose
+			if (extension instanceof Extension) {
+				// good for u
 			} else {
-				exposeArray.push(extension.expose)
+				await this.setState({ REJECTED_EXTENSIONS: [extension.constructor.name, ...this.state.REJECTED_EXTENSIONS] })
+				return reject({
+					name: extension.constructor.name,
+					reason: "EXTENSION_NOT_VALID_INSTANCE",
+				})
 			}
 
-			exposeArray.forEach((expose) => {
-				if (typeof expose.mutateContext !== "undefined") {
-					this.mutateContext(this.appContext.getProxy(), expose.mutateContext)
-				}
-				if (typeof expose.initialization !== "undefined") {
-					this.appendToInitializer(expose.initialization)
-				}
-			})
-		}
+			// await to extension initializer
+			await extension.initializer()
 
-		this.setState({
-			EXTENSIONS_KEYS: [...this.state.EXTENSIONS_KEYS, extension.key]
+			// expose context to app context
+			if (typeof extension.expose === "object") {
+				this.mutateContext(this.IsolatedMainContext.getProxy(), extension.expose)
+			}
+
+			// appends initializers
+			if (typeof extension.initializers !== "undefined") {
+				for await (let initializer of extension.initializers) {
+					await initializer.apply(this.IsolatedMainContext.getProxy(), initializer)
+				}
+			}
+
+			// set window context
+			if (typeof extension.window === "object") {
+				Object.keys(extension.window).forEach((key) => {
+					this.setToWindowContext({ key }, extension.window[key].bind(this.IsolatedMainContext.getProxy()))
+				})
+			}
+
+
+			// attach
+			this.ATTACHED_EXTENSIONS.push(extension.constructor.name)
+
+			return resolve()
 		})
-	}
-
-	// STATICS
-	getStaticRenders = (key) => {
-		const renders = this.RENDER_COMPONENT?.staticRenders ?? {}
-
-		if (typeof renders === "object") {
-			if (key in renders) {
-				return renders[key]
-			}
-		}
-	}
-
-	getStaticEventsHandlers = (key) => {
-		const events = this.RENDER_COMPONENT?.eventsHandler ?? {}
-
-		if (typeof events === "object") {
-			if (key in events) {
-				return events[key]
-			}
-		}
 	}
 
 	// RENDER METHOD
 	render() {
-		const RENDER_COMPONENT = this.state.RENDER_COMPONENT
+		if (this.state.CRASH) {
+			return <div className="__eviteCrash">
+				<h1>Oops!</h1>
+				<p>Something went wrong, the application has a fatal crash.</p>
 
-		if (this.state.APP_INITIALIZATION) {
-			const CustomRender = this.getStaticRenders("initialization")
+				<div className="__eviteCrash, description">
+					<code>
+						{this.state.CRASH.message}
+					</code>
+				</div>
+			</div>
+		}
 
-			if (typeof CustomRender !== "undefined") {
-				return <CustomRender />
+		if (this.state.LOAD_STATE !== "done") {
+			if (this.props.children.staticRenders["initialization"]) {
+				return React.createElement(this.props.children.staticRenders["initialization"])
 			}
 
 			return null
 		}
 
-		if (!RENDER_COMPONENT) {
+		if (!this.props.children) {
+			console.error("No children provided")
 			return null
 		}
 
 		console.debug(`[APP] Rendering main`)
 
-		return (
-			<Provider>
-				<RENDER_COMPONENT />
-			</Provider>
-		)
+		return React.createElement(this.props.children, {
+			contexts: {
+				main: this.IsolatedMainContext.getProxy(),
+				app: this.IsolatedAppContext.getProxy(),
+			}
+		})
 	}
 }
 
-function CreateEviteApp(component, params) {
-	return class extends EviteApp {
-		constructor(props) {
-			super(props)
-
-			this.constructorParams = { ...params, ...props, render: component }
-		}
-	}
+function CreateEviteApp(App, props) {
+	return ReactDOM.render(React.createElement(EviteApp, props, App), document.getElementById("root"))
 }
+
 
 export * from "./components"
 
 export {
 	EviteApp,
-	CreateEviteApp,
 	EventBus,
+	Extension,
+	CreateEviteApp,
 	ClassAggregation,
 	BindPropsProvider,
 	SetToWindowContext,
