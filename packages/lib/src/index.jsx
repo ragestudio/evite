@@ -120,7 +120,7 @@ class EviteApp extends React.Component {
 
 		// try to load from @extensions
 		try {
-			const extensions = import.meta.glob('/src/extensions/*.extension.js')
+			const extensions = import.meta.glob('/src/extensions/*.extension.js*')
 
 			for await (let [uri, extension] of Object.entries(extensions)) {
 				extension = await extension()
