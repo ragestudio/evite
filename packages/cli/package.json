@@ -1,6 +1,6 @@
 {
   "name": "evite-cli",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "files": [
     "bin",
     "dist"
