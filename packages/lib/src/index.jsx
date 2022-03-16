@@ -8,7 +8,7 @@ import BindPropsProvider from "./bindPropsProvider"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 
-import { EventBus, SetToWindowContext } from "./internals"
+import { EventBus, SetToWindowContext, ContextedClass } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
@@ -329,7 +329,15 @@ class EviteApp extends React.Component {
 
 		console.debug(`[APP] Rendering main`)
 
-		return React.createElement(this.props.children, {
+		return React.createElement(ClassAggregation(
+			this.props.children,
+			React.PureComponent,
+			ContextedClass(this, this.props.children, {
+				app: this.IsolatedMainContext.getProxy(),
+				main: this.IsolatedMainContext.getProxy(),
+				window: this.windowContext,
+			}),
+		), {
 			contexts: {
 				main: this.IsolatedMainContext.getProxy(),
 				app: this.IsolatedAppContext.getProxy(),
@@ -341,7 +349,6 @@ class EviteApp extends React.Component {
 function CreateEviteApp(App, props) {
 	return ReactDOM.render(React.createElement(EviteApp, props, App), document.getElementById("root"))
 }
-
 
 export * from "./components"
 
@@ -355,4 +362,3 @@ export {
 	SetToWindowContext,
 	IsolatedContext
 }
-export default EviteApp
