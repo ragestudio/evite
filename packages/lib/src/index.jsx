@@ -315,7 +315,7 @@ class EviteApp extends React.Component {
 		}
 
 		if (this.state.LOAD_STATE !== "done") {
-			if (this.props.children.staticRenders["initialization"]) {
+			if (this.props.children.staticRenders && this.props.children.staticRenders["initialization"]) {
 				return React.createElement(this.props.children.staticRenders["initialization"])
 			}
 
