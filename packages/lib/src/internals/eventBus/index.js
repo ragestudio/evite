@@ -1,4 +1,4 @@
-import EventEmitter from "@foxify/events"
+import EventEmitter from "../EventEmitter"
 
 export default class EventBus extends EventEmitter {
     constructor(params = {}) {
