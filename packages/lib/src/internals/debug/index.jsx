@@ -24,7 +24,7 @@ export class DebugWindow extends React.Component {
                 </div>
                 <div className="content">
                     {
-                        this.renderObj(this.props.cntx.state)
+                        this.renderObj(this.props.ctx.STATES)
                     }
                 </div>
             </div>
