@@ -74,7 +74,7 @@ class EviteApp extends React.Component {
 		ATTACHED_EXTENSIONS: [], // do not update this state directly, use this.ATTACHED_EXTENSIONS observer instead
 		REJECTED_EXTENSIONS: [],
 
-		INITIALIER_TASKS: [],
+		INITIALIZER_TASKS: [],
 	}
 
 	componentDidMount = async () => {
@@ -159,8 +159,8 @@ class EviteApp extends React.Component {
 		await Promise.all(extensionsInitializators)
 
 		// perform tasks
-		if (this.state.INITIALIER_TASKS) {
-			for await (let task of this.state.INITIALIER_TASKS) {
+		if (this.state.INITIALIZER_TASKS) {
+			for await (let task of this.state.INITIALIZER_TASKS) {
 				if (typeof task === "function") {
 					await task(this.IsolatedAppContext.getProxy(), this.IsolatedMainContext.getProxy())
 				}
@@ -186,7 +186,7 @@ class EviteApp extends React.Component {
 
 		tasks.forEach((_task) => {
 			if (typeof _task === "function") {
-				this.setState({ INITIALIER_TASKS: [...this.state.INITIALIER_TASKS, _task] })
+				this.setState({ INITIALIZER_TASKS: [...this.state.INITIALIZER_TASKS, _task] })
 			}
 		})
 	}
