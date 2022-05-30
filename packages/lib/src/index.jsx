@@ -26,10 +26,15 @@ class EviteRuntime {
 	PublicContext = window.app = Object()
 	ExtensionsContext = new IsolatedContext(Object())
 
-	INITIALIZER_TASKS = []
+	EXTENSIONS = Object()
+	CORES = Object()
+
+	INITIALIZER_TASKS = Array()
 
 	STATES = Observable.from({
 		LOAD_STATE: "early",
+
+		LOADED_CORES: [],
 
 		ATTACHED_EXTENSIONS: [],
 		REJECTED_EXTENSIONS: [],
@@ -61,6 +66,11 @@ class EviteRuntime {
 		this.eventBus.on("runtime.initialize.start", async () => {
 			this.STATES.LOAD_STATE = "initializing"
 			this.STATES.INITIALIZATION_START = performance.now()
+
+			// render initialize
+			if (this.AppComponent.staticRenders?.initialization) {
+				this.render(this.AppComponent.staticRenders.initialization)
+			}
 		})
 
 		this.eventBus.on("runtime.initialize.finish", async () => {
@@ -77,6 +87,11 @@ class EviteRuntime {
 
 		this.eventBus.on("runtime.initialize.crash", async () => {
 			this.STATES.LOAD_STATE = "crashed"
+
+			// render crash
+			if (this.AppComponent.staticRenders?.crash) {
+				this.render(this.AppComponent.staticRenders.crash)
+			}
 		})
 
 		// emit attached extensions change events
@@ -122,28 +137,74 @@ class EviteRuntime {
 	async initialize() {
 		this.eventBus.emit("runtime.initialize.start")
 
-		let extensionsLoad = []
-		let extensionsInitializators = []
+		let initializersQueue = []
+
+		// fetch all internal cores
+		try {
+			let cores = await import("@src/cores")
+
+			cores = cores.default
+
+			if (!Array.isArray(cores)) {
+				console.error(`Cannot initialize cores, cause it is not an array. Core dependecy is not supported yet. You must use an array to define your core load queue.`)
+				return
+			}
+
+			for await (let core of cores) {
+				if (!core.constructor) {
+					console.error(`Core [${core.name}] is not a class`)
+					continue
+				}
+
+				this.eventBus.emit(`runtime.initialize.core.${core.name}.start`)
+
+				// construct class
+				core = new core(this)
+
+				const coreName = core.constructor.name ?? core.refName
+
+				// set core to context
+				this.CORES[coreName] = core
+
+				// handle events
+				if (typeof core.events === "object") {
+					Object.entries(core.events).forEach(([event, handler]) => {
+						this.eventBus.on(event, handler)
+					})
+				}
+
+				// handle public methods
+				if (typeof core.publicMethods === "object") {
+					Object.entries(core.publicMethods).forEach(([method, handler]) => {
+						this.registerPublicMethod(method, handler)
+					})
+				}
+
+				if (typeof core.initialize === "function") {
+					// by now, we gonna initialize from here instead push to queue
+					await core.initialize()
+				}
+
+				// emit event
+				this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
+
+				// register internal core
+				this.STATES.LOADED_CORES.push(coreName)
+			}
+
+			// emit event
+			this.eventBus.emit(`runtime.initialize.cores.finish`)
+		} catch (error) {
+			this.eventBus.emit(`runtime.initialize.cores.failed`, error)
+
+			// make sure to throw that, app must crash if core fails to load
+			throw error
+		}
 
 		// try to load from @internal_extensions
 		try {
-			const extensions = import.meta.glob('/src/internal_extensions/**/*.extension.js*')
-
-			for await (let [uri, extension] of Object.entries(extensions)) {
-				extension = await extension()
-				extension = extension.default || extension
-
-				extensionsLoad.push(extension)
-			}
-		} catch (error) {
-			console.log(error)
-			this.eventBus.emit(`runtime.initialize.internalExtensions.failed`, error)
-		}
-
-		// TODO: resolve storaged extensions
-		try {
-			// get uris from storage
-			const extensions = store.get(`extensions`)
+			// TODO: Support external extensions
+			const externalExtensions = store.get(`extensions`)
 
 			// should be a object with a the extension manifest schema, e.g.
 			// {
@@ -153,40 +214,39 @@ class EviteRuntime {
 			// 	}
 			// }
 
-			// resolve extension scripts
+			const internalExtensions = import.meta.glob("/src/internal_extensions/**/*.extension.js*")
 
-			// push to queue
+			for await (let [uri, extension] of Object.entries(internalExtensions)) {
+				extension = await extension()
+				extension = extension.default || extension
+
+				const initializationPromise = new Promise(async (resolve, reject) => {
+					await this.initializeExtension(extension)
+						.then(() => {
+							return resolve()
+						})
+						.catch((rejection) => {
+							if (rejection.id) {
+								this.eventBus.emit(`runtime.extension.${rejection.id}.rejected`, rejection)
+							}
+
+							this.eventBus.emit(`runtime.extension.rejected`, rejection)
+
+							return resolve()
+						})
+				})
+
+				initializersQueue.push(initializationPromise)
+			}
 		} catch (error) {
-			console.log(error)
-			this.eventBus.emit(`runtime.initialize.storagedExtensions.failed`, error)
+			this.eventBus.emit(`runtime.initialize.internalExtensions.failed`, error)
+			console.error(error)
 		}
 
-		// get and set extensions initializers
-		for await (let extension of extensionsLoad) {
-			const initializationPromise = new Promise(async (resolve, reject) => {
-				await this.initializeExtension(extension)
-					.then(() => {
-						return resolve()
-					})
-					.catch((rejection) => {
-						if (rejection.id) {
-							this.eventBus.emit(`runtime.extension.${rejection.id}.rejected`, rejection)
-						}
+		// perform all initializers
+		await Promise.all(initializersQueue)
 
-						this.eventBus.emit(`runtime.extension.rejected`, rejection)
-
-						return resolve()
-					})
-			})
-
-			// push to queue
-			extensionsInitializators.push(initializationPromise)
-		}
-
-		// peform all initializers
-		await Promise.all(extensionsInitializators)
-
-		// perform tasks
+		// perform registered tasks
 		if (this.STATES.INITIALIZER_TASKS) {
 			for await (let task of this.STATES.INITIALIZER_TASKS) {
 				if (typeof task === "function") {
@@ -195,7 +255,7 @@ class EviteRuntime {
 			}
 		}
 
-		// initialize app
+		// call early app initializer 
 		if (typeof this.AppComponent.initialize === "function") {
 			await this.AppComponent.initialize.apply(this)
 		}
@@ -294,8 +354,8 @@ class EviteRuntime {
 			opts.key = params
 		}
 
-		if (typeof opts.key === 'undefined') {
-			throw new Error('key is required')
+		if (typeof opts.key === "undefined") {
+			throw new Error("key is required")
 		}
 
 		if (args.length > 0) {
@@ -368,19 +428,21 @@ class EviteRuntime {
 			// update attached extensions
 			this.STATES.ATTACHED_EXTENSIONS.push(extensionName)
 
+			// set extension context
+			this.EXTENSIONS[extensionName] = extension
+
 			return resolve()
 		})
 	}
 
 	// RENDER METHOD
-	render() {
+	render(component = this.AppComponent) {
 		return ReactDOM.render(React.createElement(
-			this.AppComponent,
+			component,
 			{
-				contexts: {
-					runtime: this,
-					ExtensionsContext: this.ExtensionsContext.getProxy(),
-				}
+				runtime: this,
+				cores: this.CORES,
+				ExtensionsContext: this.ExtensionsContext.getProxy(),
 			}
 		), document.getElementById(this.Params.renderMount ?? "root"))
 	}
