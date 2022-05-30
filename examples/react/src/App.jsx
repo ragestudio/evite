@@ -1,27 +1,8 @@
-import { CreateEviteApp, Extension } from "evite"
+import { EviteRuntime, Extension } from "evite"
 
 import React from "react"
 
 import "./index.less"
-
-class GoodExtensionTest extends Extension {
-	initializers = [
-		async () => {
-			console.log(this)
-			await new Promise(resolve => setTimeout(resolve, 2000))
-		},
-		function(a) {
-			console.log(this, a)
-		}
-	]
-
-	expose = {
-		testMethod: function () {
-			console.log(this)
-			window.alert("this works")
-		}
-	}
-}
 
 class ExampleApp extends React.Component {
 	constructor(props) {
@@ -31,17 +12,14 @@ class ExampleApp extends React.Component {
 			count: 0,
 			quickSum: false,
 		}
+
 		this.quickSumInterval = null
 	}
 
-	static debugMode = true
-
-	static baseExtensions = [GoodExtensionTest,]
-
 	static staticRenders = {
-		initialization: () => {
+		Initialization: () => {
 			return <div>
-				Starting in 2 seconds
+				Starting...
 			</div>
 		}
 	}
@@ -101,4 +79,4 @@ class ExampleApp extends React.Component {
 	}
 }
 
-export default CreateEviteApp(ExampleApp)
+export default new EviteRuntime(ExampleApp)
