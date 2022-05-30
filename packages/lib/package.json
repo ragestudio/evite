@@ -5,7 +5,8 @@
     "**/**"
   ],
   "main": "./src/index.jsx",
-  "license": "ISC",
+  "author": "RageStudio",
+  "license": "MIT",
   "dependencies": {
     "@loadable/component": "5.15.2",
     "history": "5.2.0",

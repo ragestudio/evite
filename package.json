@@ -11,7 +11,7 @@
     "link:lib": "cd ./packages/lib && yarn link && cd - && yarn link 'evite' && cd ./packages/cli && yarn link 'evite' && cd -"
   },
   "author": "RageStudio",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "corenode": "^0.28.26"
   }
