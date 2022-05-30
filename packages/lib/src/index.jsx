@@ -1,8 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom"
 
-import store from "store"
-
 import { createBrowserHistory } from "history"
 import { Observable } from "object-observer"
 
@@ -11,7 +9,7 @@ import BindPropsProvider from "./bindPropsProvider"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 
-import { EventBus, SetToWindowContext, ContextedClass } from "./internals"
+import { EventBus, SetToWindowContext, StaticRenders } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
@@ -68,12 +66,10 @@ class EviteRuntime {
 			this.STATES.INITIALIZATION_START = performance.now()
 
 			// render initialize
-			if (this.AppComponent.staticRenders?.initialization) {
-				this.render(this.AppComponent.staticRenders.initialization)
-			}
+			this.render(this.AppComponent.staticRenders?.Initialization ?? StaticRenders.Initialization)
 		})
 
-		this.eventBus.on("runtime.initialize.finish", async () => {
+		this.eventBus.on("runtime.initialize.finish", () => {
 			const time = performance.now()
 
 			this.STATES.INITIALIZATION_STOP = time
@@ -85,13 +81,25 @@ class EviteRuntime {
 			this.STATES.LOAD_STATE = "initialized"
 		})
 
-		this.eventBus.on("runtime.initialize.crash", async () => {
+		this.eventBus.on("runtime.initialize.crash", (error) => {
 			this.STATES.LOAD_STATE = "crashed"
 
 			// render crash
-			if (this.AppComponent.staticRenders?.crash) {
-				this.render(this.AppComponent.staticRenders.crash)
-			}
+			this.render(this.AppComponent.staticRenders?.Crash ?? StaticRenders.Crash, {
+				crash: {
+					message: "Runtime crashed on initialization",
+					details: error.toString(),
+				}
+			})
+		})
+
+		this.eventBus.on("runtime.crash", (crash) => {
+			this.STATES.LOAD_STATE = "crashed"
+
+			// render crash
+			this.render(this.AppComponent.staticRenders?.Crash ?? StaticRenders.Crash, {
+				crash
+			})
 		})
 
 		// emit attached extensions change events
@@ -131,7 +139,9 @@ class EviteRuntime {
 			this.Flags.debug = true
 		}
 
-		return this.initialize()
+		return this.initialize().catch((error) => {
+			this.eventBus.emit("runtime.initialize.crash", error)
+		})
 	}
 
 	async initialize() {
@@ -204,7 +214,7 @@ class EviteRuntime {
 		// try to load from @internal_extensions
 		try {
 			// TODO: Support external extensions
-			const externalExtensions = store.get(`extensions`)
+			const externalExtensions = window.localStorage.getItem("@internal_extensions")
 
 			// should be a object with a the extension manifest schema, e.g.
 			// {
@@ -436,13 +446,14 @@ class EviteRuntime {
 	}
 
 	// RENDER METHOD
-	render(component = this.AppComponent) {
+	render(component = this.AppComponent, props = {}) {
 		return ReactDOM.render(React.createElement(
 			component,
 			{
 				runtime: this,
 				cores: this.CORES,
 				ExtensionsContext: this.ExtensionsContext.getProxy(),
+				...props,
 			}
 		), document.getElementById(this.Params.renderMount ?? "root"))
 	}
