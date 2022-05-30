@@ -151,7 +151,14 @@ class EviteRuntime {
 
 		// fetch all internal cores
 		try {
-			let cores = await import("@src/cores")
+			let cores = await import("@src/cores").catch((err) => {
+				console.warn(`Cannot load @src/cores.`, err)
+				return false
+			})
+
+			if (!cores) {
+				return false
+			}
 
 			cores = cores.default
 
