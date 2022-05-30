@@ -214,7 +214,7 @@ class EviteRuntime {
 		// try to load from @internal_extensions
 		try {
 			// TODO: Support external extensions
-			const externalExtensions = window.localStorage.getItem("@internal_extensions")
+			const externalExtensions = window.localStorage.getItem("external_extensions")
 
 			// should be a object with a the extension manifest schema, e.g.
 			// {
