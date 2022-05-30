@@ -32,8 +32,15 @@ class EviteApp extends React.Component {
 			})
 		})
 
+		// set windows flags if is not set
+		if (typeof window.flags !== "object") {
+			window.flags = Object()
+		}
+
 		// contexts
+		this.flags = window.flags
 		this.windowContext = window.app = Object()
+
 		this.IsolatedMainContext = new IsolatedContext(this)
 		this.IsolatedAppContext = new IsolatedContext({})
 
@@ -91,7 +98,7 @@ class EviteApp extends React.Component {
 	}
 
 	componentDidUpdate = async () => {
-		if (this.props.children.debugMode) {
+		if (this.flags.debugMode) {
 			let elementContainer = document.getElementById("debug-window")
 
 			if (!elementContainer) {
