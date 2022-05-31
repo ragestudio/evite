@@ -184,7 +184,7 @@ class EviteRuntime {
 				this.CORES[coreName] = core
 
 				// handle events
-				if (typeof core.publicEvents === "object") {
+				if (typeof core.events === "object") {
 					Object.entries(core.publicEvents).forEach(([event, handler]) => {
 						this.eventBus.on(event, handler)
 					})
@@ -278,7 +278,7 @@ class EviteRuntime {
 		}
 
 		// handle app events handlers registration
-		if (typeof this.AppComponent.eventsHandlers === "object") {
+		if (typeof this.AppComponent.publicEvents === "object") {
 			for await (let [event, handler] of Object.entries(this.AppComponent.eventsHandlers)) {
 				this.eventBus.on(event, handler.bind(this))
 			}
