@@ -7,5 +7,11 @@ module.exports = (config = {}) => {
         }
     }
 
+    config.resolve = {}
+
+    config.resolve.alias = {
+        "~": __dirname
+    }
+
     return config
 }

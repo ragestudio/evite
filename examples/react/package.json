@@ -6,7 +6,6 @@
     "start": "vite"
   },
   "dependencies": {
-    "react": "17.0.2",
-    "evite": "0.10.2"
+    "evite": "0.11.2"
   }
 }
