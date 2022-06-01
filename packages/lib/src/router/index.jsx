@@ -1,5 +1,5 @@
-import React, { Fragment, lazy, Suspense } from "react"
-import { withRouter, Switch, Route, BrowserRouter } from "react-router-dom/modules/index.js"
+import React from "react"
+import { Switch, Route, BrowserRouter, withRouter } from "react-router-dom"
 
 import NotFoundRender from "../internals/staticRenders/NotFound"
 
@@ -17,62 +17,7 @@ const routes = Object.keys(scriptRoutes).map((route) => {
         .replace(/\[\.{3}.+\]/, "*")
         .replace(/\[(.+)\]/, ":$1")
 
-    return { path, component: lazy(scriptRoutes[route]) }
-})
-
-const InternalRouter = withRouter((props) => {
-    const defaultTransitionDelay = 150
-
-    React.useEffect(() => {
-        props.history.listen((event) => {
-            if (typeof props.onTransitionFinish === "function") {
-                props.onTransitionFinish(event)
-            }
-
-            window.app.eventBus.emit("transitionDone", event)
-        })
-
-        props.history.setLocation = (to, state, delay) => {
-            const lastLocation = props.history.lastLocation
-
-            if (typeof lastLocation !== "undefined" && lastLocation?.pathname === to && lastLocation?.state === state) {
-                return false
-            }
-
-            if (typeof props.onTransitionStart === "function") {
-                props.onTransitionStart(delay)
-            }
-
-            window.app.eventBus.emit("transitionStart", delay)
-
-            setTimeout(() => {
-                props.history.push({
-                    pathname: to,
-                }, state)
-
-                props.history.lastLocation = window.location
-            }, delay ?? defaultTransitionDelay)
-        }
-
-        window.app.setLocation = props.history.setLocation
-    }, [])
-
-    return <Suspense fallback={"Loading..."}>
-        <Switch>
-            {routes.map(({ path, component: Component = Fragment }) => (
-                <Route
-                    key={path}
-                    path={path}
-                    component={(_props) => React.createElement(BindContexts(Component), {
-                        ...props,
-                        ..._props
-                    })}
-                    exact={true}
-                />
-            ))}
-            <Route path="*" component={props.staticRenders?.NotFound ?? NotFoundRender} />
-        </Switch>
-    </Suspense>
+    return { path, component: React.lazy(scriptRoutes[route]) }
 })
 
 export function BindContexts(component) {
@@ -111,6 +56,63 @@ export function BindContexts(component) {
 
     return (props) => React.createElement(component, { ...props, contexts })
 }
+
+export const InternalRouter = withRouter((props) => {
+    const defaultTransitionDelay = 150
+
+    React.useEffect(() => {
+        props.history.listen((event) => {
+            if (typeof props.onTransitionFinish === "function") {
+                props.onTransitionFinish(event)
+            }
+
+            window.app.eventBus.emit("transitionDone", event)
+        })
+
+        props.history.setLocation = (to, state, delay) => {
+            const lastLocation = props.history.lastLocation
+
+            if (typeof lastLocation !== "undefined" && lastLocation?.pathname === to && lastLocation?.state === state) {
+                return false
+            }
+
+            if (typeof props.onTransitionStart === "function") {
+                props.onTransitionStart(delay)
+            }
+
+            window.app.eventBus.emit("transitionStart", delay)
+
+            setTimeout(() => {
+                props.history.push({
+                    pathname: to,
+                }, state)
+
+                props.history.lastLocation = window.location
+
+            }, delay ?? defaultTransitionDelay)
+        }
+
+        window.app.setLocation = props.history.setLocation
+    }, [])
+
+    return <React.Suspense fallback={"Loading..."}>
+        <Switch>
+            {routes.map(({ path, component: Component = React.Fragment }) => (
+                <Route
+                    key={path}
+                    path={path}
+                    component={(_props) => React.createElement(BindContexts(Component), {
+                        ...props,
+                        ..._props,
+                        history: props.history,
+                    })}
+                    exact={true}
+                />
+            ))}
+            <Route path="*" component={props.staticRenders?.NotFound ?? NotFoundRender} />
+        </Switch>
+    </React.Suspense>
+})
 
 export const Router = (props) => {
     return <BrowserRouter>
