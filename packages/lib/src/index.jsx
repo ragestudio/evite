@@ -8,6 +8,7 @@ import ClassAggregation from "./classAggregation"
 import BindPropsProvider from "./bindPropsProvider"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
+import Router from "./router"
 
 import { EventBus, SetToWindowContext, StaticRenders } from "./internals"
 
@@ -471,6 +472,7 @@ export * from "./components"
 export {
 	EviteRuntime,
 	EventBus,
+	Router,
 	Extension,
 	ClassAggregation,
 	BindPropsProvider,
