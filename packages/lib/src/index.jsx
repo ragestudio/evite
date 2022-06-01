@@ -4,8 +4,6 @@ import ReactDOM from "react-dom"
 import { createBrowserHistory } from "history"
 import { Observable } from "object-observer"
 
-import ClassAggregation from "./classAggregation"
-import BindPropsProvider from "./bindPropsProvider"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 import Router from "./router"
@@ -470,14 +468,13 @@ class EviteRuntime {
 }
 
 export * from "./components"
+export * as Utils from "./utils"
 
 export {
 	EviteRuntime,
 	EventBus,
 	Router,
 	Extension,
-	ClassAggregation,
-	BindPropsProvider,
 	SetToWindowContext,
 	IsolatedContext
 }
