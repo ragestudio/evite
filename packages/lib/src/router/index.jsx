@@ -1,5 +1,5 @@
 import React, { Fragment, lazy, Suspense } from "react"
-import { withRouter, Switch, Route, BrowserRouter } from "react-router-dom"
+import { withRouter, Switch, Route, BrowserRouter } from "react-router-dom/modules/index.js"
 
 import NotFoundRender from "../internals/staticRenders/NotFound"
 
