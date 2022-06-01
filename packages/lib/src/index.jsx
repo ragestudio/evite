@@ -152,66 +152,68 @@ class EviteRuntime {
 
 		// fetch all internal cores
 		try {
-			let cores = await import("@src/cores").catch((err) => {
+			let cores = await import("~/src/cores").catch((err) => {
 				console.warn(`Cannot load @src/cores.`, err)
 				return false
 			})
 
-			if (!cores) {
-				return false
-			}
+			if (cores) {
+				this.eventBus.emit(`runtime.initialize.cores.start`)
 
-			cores = cores.default
+				cores = cores.default
 
-			if (!Array.isArray(cores)) {
-				console.error(`Cannot initialize cores, cause it is not an array. Core dependecy is not supported yet. You must use an array to define your core load queue.`)
-				return
-			}
-
-			for await (let core of cores) {
-				if (!core.constructor) {
-					console.error(`Core [${core.name}] is not a class`)
-					continue
+				if (!Array.isArray(cores)) {
+					console.error(`Cannot initialize cores, cause it is not an array. Core dependency is not supported yet. You must use an array to define your core load queue.`)
+					return
 				}
 
-				this.eventBus.emit(`runtime.initialize.core.${core.name}.start`)
+				for await (let core of cores) {
+					if (!core.constructor) {
+						console.error(`Core [${core.name}] is not a class`)
+						continue
+					}
 
-				// construct class
-				core = new core(this)
+					this.eventBus.emit(`runtime.initialize.core.${core.name}.start`)
 
-				const coreName = core.constructor.name ?? core.refName
+					// construct class
+					core = new core(this)
 
-				// set core to context
-				this.CORES[coreName] = core
+					const coreName = core.constructor.name ?? core.refName
 
-				// handle events
-				if (typeof core.events === "object") {
-					Object.entries(core.events).forEach(([event, handler]) => {
-						this.eventBus.on(event, handler)
-					})
-				}
+					// set core to context
+					this.CORES[coreName] = core
 
-				// handle public methods
-				if (typeof core.publicMethods === "object") {
-					Object.entries(core.publicMethods).forEach(([method, handler]) => {
-						this.registerPublicMethod(method, handler)
-					})
-				}
+					// handle events
+					if (typeof core.events === "object") {
+						Object.entries(core.events).forEach(([event, handler]) => {
+							this.eventBus.on(event, handler)
+						})
+					}
 
-				if (typeof core.initialize === "function") {
-					// by now, we gonna initialize from here instead push to queue
-					await core.initialize()
+					// handle public methods
+					if (typeof core.publicMethods === "object") {
+						Object.entries(core.publicMethods).forEach(([method, handler]) => {
+							this.registerPublicMethod(method, handler)
+						})
+					}
+
+					if (typeof core.initialize === "function") {
+						// by now, we gonna initialize from here instead push to queue
+						await core.initialize()
+					}
+
+					// emit event
+					this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
+
+					// register internal core
+					this.STATES.LOADED_CORES.push(coreName)
 				}
 
 				// emit event
-				this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
-
-				// register internal core
-				this.STATES.LOADED_CORES.push(coreName)
+				this.eventBus.emit(`runtime.initialize.cores.finish`)
 			}
 
-			// emit event
-			this.eventBus.emit(`runtime.initialize.cores.finish`)
+
 		} catch (error) {
 			this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
