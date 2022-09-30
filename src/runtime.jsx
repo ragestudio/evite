@@ -7,7 +7,7 @@ import { Observable } from "object-observer"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 
-import { EventBus, StaticRenders } from "./internals"
+import { EventBus, StaticRenders, InternalConsole } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
@@ -19,18 +19,22 @@ export default class EviteRuntime {
     Flags = window.flags = Observable.from({
         debug: false,
     })
+
+    INTERNAL_CONSOLE = new InternalConsole({
+        namespace: "Runtime"
+    })
+
     PublicContext = window.app = Object()
     ExtensionsContext = new IsolatedContext(Object())
 
     EXTENSIONS = Object()
     CORES = Object()
 
-    INITIALIZER_TASKS = Array()
-
     STATES = Observable.from({
         LOAD_STATE: "early",
 
         LOADED_CORES: [],
+        INITIALIZER_TASKS: [],
 
         ATTACHED_EXTENSIONS: [],
         REJECTED_EXTENSIONS: [],
@@ -103,7 +107,7 @@ export default class EviteRuntime {
         // emit attached extensions change events
         Observable.observe(this.STATES.ATTACHED_EXTENSIONS, (changes) => {
             changes.forEach((change) => {
-                console.log(changes)
+                this.INTERNAL_CONSOLE.log(changes)
                 if (change.type === "insert") {
                     this.eventBus.emit(`runtime.extension.attached`, change)
                 }
@@ -145,19 +149,9 @@ export default class EviteRuntime {
     async initialize() {
         this.eventBus.emit("runtime.initialize.start")
 
-        // fist initialize cores
         await this.initializeCores()
 
         await this.registerInternalExtensionToInitializer()
-
-        // perform registered tasks
-        if (this.STATES.INITIALIZER_TASKS) {
-            for await (let task of this.STATES.INITIALIZER_TASKS) {
-                if (typeof task === "function") {
-                    await task(this)
-                }
-            }
-        }
 
         // call early app initializer 
         if (typeof this.AppComponent.initialize === "function") {
@@ -181,73 +175,100 @@ export default class EviteRuntime {
         // emit initialize finish event
         this.eventBus.emit("runtime.initialize.finish")
 
+        await this.performInitializerTasks()
+
         // call render
         this.render()
     }
 
     initializeCores = async () => {
-        // fetch all internal cores
         try {
             let cores = await import("~/src/cores").catch((err) => {
-                console.warn(`Cannot load @src/cores.`, err)
+                this.INTERNAL_CONSOLE.warn(`Cannot load @src/cores.`, err)
                 return false
             })
 
-            if (cores) {
-                this.eventBus.emit(`runtime.initialize.cores.start`)
+            cores = cores.default ?? cores
 
-                cores = cores.default
+            if (!cores) {
+                this.INTERNAL_CONSOLE.warn(`Skipping cores initialization.`)
 
-                if (!Array.isArray(cores)) {
-                    console.error(`Cannot initialize cores, cause it is not an array. Core dependency is not supported yet. You must use an array to define your core load queue.`)
-                    return
+                return true
+            }
+
+            this.eventBus.emit(`runtime.initialize.cores.start`)
+
+            if (!Array.isArray(cores)) {
+                this.INTERNAL_CONSOLE.error(`Cannot initialize cores, cause it is not an array. Core dependency is not supported yet. You must use an array to define your core load queue.`)
+                return
+            }
+
+            // sort cores by dependencies
+            cores = cores.sort((a, b) => {
+                if (a.dependencies?.includes(b.name) === true) {
+                    return 1
                 }
 
-                for await (let core of cores) {
-                    if (!core.constructor) {
-                        console.error(`Core [${core.name}] is not a class`)
-                        continue
-                    }
+                if (b.dependencies?.includes(a.name) === true) {
+                    return -1
+                }
 
-                    this.eventBus.emit(`runtime.initialize.core.${core.name}.start`)
+                return 0
+            })
 
-                    // construct class
-                    core = new core(this)
+            for await (let coreClass of cores) {
+                if (!coreClass.constructor) {
+                    this.INTERNAL_CONSOLE.error(`Core [${core.name}] is not a class`)
+                    continue
+                }
 
-                    const coreName = core.constructor.name ?? core.refName
+                this.eventBus.emit(`runtime.initialize.core.${coreClass.name}.start`)
 
-                    // set core to context
-                    this.CORES[coreName] = core
+                // construct class
+                let core = new coreClass(this)
 
-                    // handle events
-                    if (typeof core.events === "object") {
-                        Object.entries(core.events).forEach(([event, handler]) => {
-                            this.eventBus.on(event, handler)
-                        })
-                    }
+                const coreName = core.constructor.name ?? core.refName
 
-                    // handle public methods
-                    if (typeof core.publicMethods === "object") {
-                        Object.entries(core.publicMethods).forEach(([method, handler]) => {
-                            this.registerPublicMethod(method, handler)
-                        })
-                    }
+                // set core to context
+                this.CORES[coreName] = core
 
-                    if (typeof core.initialize === "function") {
-                        // by now, we gonna initialize from here instead push to queue
-                        await core.initialize()
-                    }
+                // register a app namespace
+                if (coreClass.namespace) {
+                    core.public = this.registerPublicMethod(coreClass.namespace, Object())
+                }
 
-                    // emit event
-                    this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
+                // register eventBus events
+                if (typeof core.events === "object") {
+                    Object.entries(core.events).forEach(([event, handler]) => {
+                        this.eventBus.on(event, handler)
+                    })
+                }
 
-                    // register internal core
-                    this.STATES.LOADED_CORES.push(coreName)
+                // handle global public methods
+                if (typeof core.publicMethods === "object") {
+                    Object.entries(core.publicMethods).forEach(([method, handler]) => {
+                        this.registerPublicMethod(method, handler)
+                    })
+                }
+
+                if (typeof core.initializeBeforeRuntimeInit === "function") {
+                    this.appendToInitializer(core.initializeBeforeRuntimeInit.bind(core))
+                }
+
+                if (typeof core.initialize === "function") {
+                    // by now, we gonna initialize from here instead push to queue
+                    await core.initialize()
                 }
 
                 // emit event
-                this.eventBus.emit(`runtime.initialize.cores.finish`)
+                this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
+
+                // register internal core
+                this.STATES.LOADED_CORES.push(coreName)
             }
+
+            // emit event
+            this.eventBus.emit(`runtime.initialize.cores.finish`)
         } catch (error) {
             this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
@@ -280,11 +301,11 @@ export default class EviteRuntime {
                         })
                 })
 
-                appendToInitializer(initializationPromise)
+                this.appendToInitializer(initializationPromise)
             }
         } catch (error) {
             this.eventBus.emit(`runtime.initialize.internalExtensions.failed`, error)
-            console.error(error)
+            this.INTERNAL_CONSOLE.error(error)
         }
     }
 
@@ -323,19 +344,36 @@ export default class EviteRuntime {
 
         tasks.forEach((_task) => {
             if (typeof _task === "function") {
-                this.setState({ INITIALIZER_TASKS: [...this.state.INITIALIZER_TASKS, _task] })
+                this.STATES.INITIALIZER_TASKS.push(_task)
             }
         })
+    }
+
+    performInitializerTasks = async () => {
+        if (this.STATES.INITIALIZER_TASKS.length === 0) {
+            this.INTERNAL_CONSOLE.warn("No initializer tasks found, skipping...")
+            return true
+        }
+
+        for await (let task of this.STATES.INITIALIZER_TASKS) {
+            if (typeof task === "function") {
+                try {
+                    await task(this)
+                } catch (error) {
+                    this.INTERNAL_CONSOLE.error(`Failed to perform initializer task >`, error)
+                }
+            }
+        }
     }
 
     // CONTEXT CONTROL
     mutateContext = (context, mutation) => {
         if (typeof context !== "object") {
-            console.error("Context must be an object or an valid Context")
+            this.INTERNAL_CONSOLE.error("Context must be an object or an valid Context")
             return false
         }
         if (typeof mutation !== "object") {
-            console.error("Mutation must be an object")
+            this.INTERNAL_CONSOLE.error("Mutation must be an object")
             return false
         }
 
@@ -376,7 +414,7 @@ export default class EviteRuntime {
                 configurable: opts.locked
             })
         } catch (error) {
-            console.error(error)
+            this.INTERNAL_CONSOLE.error(error)
         }
 
         return this.PublicContext[opts.key]
