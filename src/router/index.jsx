@@ -1,7 +1,7 @@
 import React from "react"
 import { Switch, Route, BrowserRouter, withRouter } from "react-router-dom"
 
-import NotFoundRender from "../internals/staticRenders/NotFound"
+import NotFoundRender from "../staticRenders/NotFound"
 
 const JSXRoutes = import.meta.glob("/src/pages/**/[a-z[]*.jsx")
 const TSXRoutes = import.meta.glob("/src/pages/**/[a-z[]*.tsx")
@@ -57,8 +57,9 @@ export function BindContexts(component) {
     return (props) => React.createElement(component, { ...props, contexts })
 }
 
-export const InternalRouter = withRouter((props) => {
+export const Router = withRouter((props) => {
     const defaultTransitionDelay = 150
+    const forceUpdate = React.useReducer(() => ({}))[1]
 
     React.useEffect(() => {
         props.history.listen((event) => {
@@ -66,10 +67,19 @@ export const InternalRouter = withRouter((props) => {
                 props.onTransitionFinish(event)
             }
 
-            window.app.eventBus.emit("transitionDone", event)
+            window.app.eventBus.emit("router.transitionFinish", event)
         })
 
-        props.history.setLocation = (to, state, delay) => {
+        props.history.setLocation = (to, state = {}, delay = 150) => {
+            // clean double slashes
+            to = to.replace(/\/{2,}/g, "/")
+
+            // if state is a number, it's a delay
+            if (typeof state !== "object") {
+                delay = state
+                state = {}
+            }
+
             const lastLocation = props.history.lastLocation
 
             if (typeof lastLocation !== "undefined" && lastLocation?.pathname === to && lastLocation?.state === state) {
@@ -80,7 +90,7 @@ export const InternalRouter = withRouter((props) => {
                 props.onTransitionStart(delay)
             }
 
-            window.app.eventBus.emit("transitionStart", delay)
+            window.app.eventBus.emit("router.transitionStart", delay)
 
             setTimeout(() => {
                 props.history.push({
@@ -88,14 +98,34 @@ export const InternalRouter = withRouter((props) => {
                 }, state)
 
                 props.history.lastLocation = window.location
-
             }, delay ?? defaultTransitionDelay)
         }
+
+        window.app.eventBus.on(`router.forceUpdate`, forceUpdate)
+
+        props.history.lastLocation = window.location
 
         window.app.setLocation = props.history.setLocation
     }, [])
 
-    return <React.Suspense fallback={"Loading..."}>
+    const router = {
+        history: props.history,
+        lastLocation: props.history.lastLocation,
+        forceUpdate,
+    }
+
+    // return children with router in props
+    return React.cloneElement(props.children, { router })
+})
+
+export const InternalRouter = (props) => {
+    return <BrowserRouter>
+        <Router {...props} />
+    </BrowserRouter>
+}
+
+export const PageRender = (props) => {
+    return <React.Suspense fallback={props.staticRenders?.PageLoad ? React.createElement(props.staticRenders?.PageLoad) : "Loading..."}>
         <Switch>
             {routes.map(({ path, component: Component = React.Fragment }) => (
                 <Route
@@ -112,14 +142,11 @@ export const InternalRouter = withRouter((props) => {
             <Route path="*" component={props.staticRenders?.NotFound ?? NotFoundRender} />
         </Switch>
     </React.Suspense>
-})
-
-export const Router = (props) => {
-    return <BrowserRouter>
-        <InternalRouter
-            {...props}
-        />
-    </BrowserRouter>
 }
 
-export default Router
+export default {
+    routes,
+    BindContexts,
+    InternalRouter,
+    PageRender,
+}
