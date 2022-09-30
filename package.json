@@ -1,23 +1,25 @@
 {
   "name": "evite",
   "author": "RageStudio",
+  "version": "0.12.3",
   "license": "MIT",
   "main": "./src/index.jsx",
   "scripts": {
-    "build": "cd ./packages/cli && yarn build && cd -",
-    "dev": "cd ./packages/cli && yarn dev && cd -",
-    "link:lib": "cd ./packages/lib && yarn link && cd - && yarn link 'evite' && cd ./packages/cli && yarn link 'evite' && cd -"
+    "link": "yarn link && yarn link 'evite'",
+    "example:react": "cd example && yarn start"
   },
   "peerDependencies": {
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "vite": "^2.9.0"
+    "vite": "^3.1.4"
   },
   "dependencies": {
     "@loadable/component": "5.15.2",
+    "@vitejs/plugin-react": "^2.1.0",
     "history": "5.2.0",
     "less": "4.1.3",
     "object-observer": "5.1.6",
+    "prop-types": "15.8.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-helmet": "6.1.0",
