@@ -4,6 +4,9 @@
   "version": "0.13.0",
   "license": "MIT",
   "main": "./src/index.jsx",
+  "files": [
+    "src"
+  ],
   "scripts": {
     "link": "yarn link && yarn link 'evite'",
     "example:react": "cd example && yarn start"
