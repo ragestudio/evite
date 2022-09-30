@@ -1,7 +1,7 @@
 {
   "builder": {
     "ignoreSources": [
-      "./packages/lib/**/**"
+      "./src/**/**"
     ]
   },
   "version": "0.12.3"
