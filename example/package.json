@@ -6,6 +6,6 @@
     "start": "vite"
   },
   "dependencies": {
-    "evite": "0.11.2"
+    "evite": "0.12.3"
   }
 }
