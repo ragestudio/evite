@@ -11,7 +11,7 @@ import { EventBus, StaticRenders } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
-import pkgJson from "../package.json"
+import pkgJson from "../../package.json"
 
 import "./internals/style/index.css"
 
@@ -145,8 +145,47 @@ export default class EviteRuntime {
     async initialize() {
         this.eventBus.emit("runtime.initialize.start")
 
-        let initializersQueue = []
+        // fist initialize cores
+        await this.initializeCores()
 
+        await this.registerInternalExtensionToInitializer()
+
+        // perform registered tasks
+        if (this.STATES.INITIALIZER_TASKS) {
+            for await (let task of this.STATES.INITIALIZER_TASKS) {
+                if (typeof task === "function") {
+                    await task(this)
+                }
+            }
+        }
+
+        // call early app initializer 
+        if (typeof this.AppComponent.initialize === "function") {
+            await this.AppComponent.initialize.apply(this)
+        }
+
+        // handle app events handlers registration
+        if (typeof this.AppComponent.publicEvents === "object") {
+            for await (let [event, handler] of Object.entries(this.AppComponent.publicEvents)) {
+                this.eventBus.on(event, handler.bind(this))
+            }
+        }
+
+        // handle app public methods registration
+        if (typeof this.AppComponent.publicMethods === "object") {
+            Object.keys(this.AppComponent.publicMethods).forEach((methodName) => {
+                this.registerPublicMethod(methodName, this.AppComponent.publicMethods[methodName].bind(this))
+            })
+        }
+
+        // emit initialize finish event
+        this.eventBus.emit("runtime.initialize.finish")
+
+        // call render
+        this.render()
+    }
+
+    initializeCores = async () => {
         // fetch all internal cores
         try {
             let cores = await import("~/src/cores").catch((err) => {
@@ -209,28 +248,16 @@ export default class EviteRuntime {
                 // emit event
                 this.eventBus.emit(`runtime.initialize.cores.finish`)
             }
-
-
         } catch (error) {
             this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
             // make sure to throw that, app must crash if core fails to load
             throw error
         }
+    }
 
-        // try to load from @internal_extensions
+    registerInternalExtensionToInitializer = async () => {
         try {
-            // TODO: Support external extensions
-            const externalExtensions = window.localStorage.getItem("external_extensions")
-
-            // should be a object with a the extension manifest schema, e.g.
-            // {
-            //	"publisher/extensionName": {
-            //		url: "https://extensions_storage.ragestudio.net/pkg/publisher/extensionName.extension.js@0.0.0",
-            //		version: "0.0.0",
-            // 	}
-            // }
-
             const internalExtensions = import.meta.glob("/src/internal_extensions/**/*.extension.js*")
 
             for await (let [uri, extension] of Object.entries(internalExtensions)) {
@@ -253,49 +280,12 @@ export default class EviteRuntime {
                         })
                 })
 
-                initializersQueue.push(initializationPromise)
+                appendToInitializer(initializationPromise)
             }
         } catch (error) {
             this.eventBus.emit(`runtime.initialize.internalExtensions.failed`, error)
             console.error(error)
         }
-
-        // perform all initializers
-        await Promise.all(initializersQueue)
-
-        // perform registered tasks
-        if (this.STATES.INITIALIZER_TASKS) {
-            for await (let task of this.STATES.INITIALIZER_TASKS) {
-                if (typeof task === "function") {
-                    await task(this)
-                }
-            }
-        }
-
-        // call early app initializer 
-        if (typeof this.AppComponent.initialize === "function") {
-            await this.AppComponent.initialize.apply(this)
-        }
-
-        // handle app events handlers registration
-        if (typeof this.AppComponent.publicEvents === "object") {
-            for await (let [event, handler] of Object.entries(this.AppComponent.publicEvents)) {
-                this.eventBus.on(event, handler.bind(this))
-            }
-        }
-
-        // handle app public methods registration
-        if (typeof this.AppComponent.publicMethods === "object") {
-            Object.keys(this.AppComponent.publicMethods).forEach((methodName) => {
-                this.registerPublicMethod(methodName, this.AppComponent.publicMethods[methodName].bind(this))
-            })
-        }
-
-        // emit initialize finish event
-        this.eventBus.emit("runtime.initialize.finish")
-
-        // call render
-        this.render()
     }
 
     toogleRuntimeDebugMode = (to) => {
