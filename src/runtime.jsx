@@ -7,9 +7,9 @@ import { Observable } from "object-observer"
 import IsolatedContext from "./isolatedContext"
 import Extension from "./extension"
 
-import { EventBus, StaticRenders, InternalConsole } from "./internals"
-
+import { EventBus, InternalConsole } from "./internals"
 import { DebugWindow } from "./internals/debug"
+import StaticRenders from "./staticRenders"
 
 import pkgJson from "../package.json"
 
