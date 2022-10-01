@@ -9,7 +9,7 @@ import Extension from "./extension"
 
 import { EventBus, InternalConsole } from "./internals"
 import { DebugWindow } from "./internals/debug"
-import StaticRenders from "./staticRenders"
+import * as StaticRenders from "./staticRenders"
 
 import pkgJson from "../package.json"
 
