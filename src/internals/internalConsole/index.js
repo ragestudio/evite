@@ -1,4 +1,4 @@
-import kleur from "kluer"
+import kleur from "kleur"
 
 export class InternalConsole {
     constructor(params = {}) {
@@ -7,6 +7,10 @@ export class InternalConsole {
     }
 
     applyHeadColor(data) {
+        if (!this.headColor) {
+            return data
+        }
+
         if (!kleur[this.headColor]) {
             return data
         }
@@ -15,26 +19,26 @@ export class InternalConsole {
     }
 
     log(arg1, ...args) {
-        console.log(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.log(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 
     warn(arg1, ...args) {
-        console.warn(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.warn(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 
     error(arg1, ...args) {
-        console.error(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.error(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 
     debug(arg1, ...args) {
-        console.debug(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.debug(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 
     info(arg1, ...args) {
-        console.info(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.info(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 
     trace(arg1, ...args) {
-        console.trace(`[${applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
+        console.trace(`[${this.applyHeadColor(String(this.namespace))}] ${arg1}`, ...args)
     }
 }
