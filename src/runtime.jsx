@@ -11,7 +11,7 @@ import { EventBus, StaticRenders, InternalConsole } from "./internals"
 
 import { DebugWindow } from "./internals/debug"
 
-import pkgJson from "../../package.json"
+import pkgJson from "../package.json"
 
 import "./internals/style/index.css"
 
