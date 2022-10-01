@@ -1,6 +1,6 @@
 import kleur from "kleur"
 
-export class InternalConsole {
+export default class InternalConsole {
     constructor(params = {}) {
         this.namespace = params.namespace
         this.headColor = params.headColor
