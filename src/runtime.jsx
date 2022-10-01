@@ -21,7 +21,8 @@ export default class EviteRuntime {
     })
 
     INTERNAL_CONSOLE = new InternalConsole({
-        namespace: "Runtime"
+        namespace: "Runtime",
+        headColor: "bgMagenta",
     })
 
     PublicContext = window.app = Object()
@@ -107,7 +108,6 @@ export default class EviteRuntime {
         // emit attached extensions change events
         Observable.observe(this.STATES.ATTACHED_EXTENSIONS, (changes) => {
             changes.forEach((change) => {
-                this.INTERNAL_CONSOLE.log(changes)
                 if (change.type === "insert") {
                     this.eventBus.emit(`runtime.extension.attached`, change)
                 }
@@ -168,7 +168,10 @@ export default class EviteRuntime {
         // handle app public methods registration
         if (typeof this.AppComponent.publicMethods === "object") {
             Object.keys(this.AppComponent.publicMethods).forEach((methodName) => {
-                this.registerPublicMethod(methodName, this.AppComponent.publicMethods[methodName].bind(this))
+                this.registerPublicMethod({
+                    key: methodName,
+                    locked: true,
+                }, this.AppComponent.publicMethods[methodName].bind(this))
             })
         }
 
@@ -233,8 +236,19 @@ export default class EviteRuntime {
                 this.CORES[coreName] = core
 
                 // register a app namespace
-                if (coreClass.namespace) {
-                    core.public = this.registerPublicMethod(coreClass.namespace, Object())
+                if (coreClass.namespace && coreClass.public) {
+                    if (typeof coreClass.public === "string") {
+                        coreClass.public = [coreClass.public]
+                    }
+
+                    const publicContext = Object.fromEntries(coreClass.public.map((methodName) => {
+                        return [methodName, core[methodName].bind(core)]
+                    }))
+
+                    this.registerPublicMethod({
+                        key: coreClass.namespace,
+                        locked: true,
+                    }, publicContext)
                 }
 
                 // register eventBus events
