@@ -269,6 +269,26 @@ export default class EviteRuntime {
                     this.appendToInitializer(core.initializeBeforeRuntimeInit.bind(core))
                 }
 
+                if (typeof coreClass.awaitEvents === "object") {
+                    let awaitEvents = []
+
+                    if (typeof coreClass.awaitEvents === "string") {
+                        awaitEvents = [coreClass.awaitEvents]
+                    } else if (Array.isArray(coreClass.awaitEvents)) {
+                        awaitEvents = coreClass.awaitEvents
+                    }
+
+                    // await to events before initialize
+                    await Promise.all(awaitEvents.map(([event, handler]) => {
+                        return new Promise((resolve) => {
+                            this.eventBus.once(event, (data) => {
+                                handler(data)
+                                resolve()
+                            })
+                        })
+                    }))
+                }
+
                 if (typeof core.initialize === "function") {
                     // by now, we gonna initialize from here instead push to queue
                     await core.initialize()
