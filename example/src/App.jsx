@@ -1,4 +1,4 @@
-import { EviteRuntime, Router } from "evite"
+import { EviteRuntime } from "evite"
 
 import React from "react"
 
@@ -23,7 +23,7 @@ class ExampleApp extends React.Component {
 
 	render() {
 		return <div className="exampleApp">
-			<Router />
+			
 		</div>
 	}
 }
