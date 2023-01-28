@@ -146,6 +146,22 @@ export default class EviteRuntime {
         })
     }
 
+    bindObjects = async (bind, events, parent) => {
+        let boundEvents = {}
+
+        for await (let [event, handler] of Object.entries(events)) {
+            if (typeof handler === "object") {
+                boundEvents[event] = await this.bindObjects(bind, handler, parent)
+            }
+
+            if (typeof handler === "function") {
+                boundEvents[event] = handler.bind(bind)
+            }
+        }
+
+        return boundEvents
+    }
+
     async initialize() {
         this.eventBus.emit("runtime.initialize.start")
 
@@ -167,12 +183,7 @@ export default class EviteRuntime {
 
         // handle app public methods registration
         if (typeof this.AppComponent.publicMethods === "object") {
-            Object.keys(this.AppComponent.publicMethods).forEach((methodName) => {
-                this.registerPublicMethod({
-                    key: methodName,
-                    locked: true,
-                }, this.AppComponent.publicMethods[methodName].bind(this))
-            })
+            await this.registerPublicMethods(this.AppComponent.publicMethods)
         }
 
         // emit initialize finish event
@@ -420,6 +431,22 @@ export default class EviteRuntime {
         })
 
         return context
+    }
+
+    registerPublicMethods = async (methods) => {
+        if (typeof methods !== "object") {
+            this.INTERNAL_CONSOLE.error("Methods must be an object")
+            return false
+        }
+
+        const boundedPublicMethods = await this.bindObjects(this, methods)
+
+        for await (let [methodName, fn] of Object.entries(boundedPublicMethods)) {
+            this.registerPublicMethod({
+                key: methodName,
+                locked: true,
+            }, fn)
+        }
     }
 
     registerPublicMethod = (params = {}, value, ...args) => {
