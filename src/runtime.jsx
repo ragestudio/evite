@@ -230,6 +230,8 @@ export default class EviteRuntime {
                 return 0
             })
 
+            const publicCoresFunctions = {}
+
             for await (let coreClass of cores) {
                 if (!coreClass.constructor) {
                     this.INTERNAL_CONSOLE.error(`Core [${core.name}] is not a class`)
@@ -247,30 +249,31 @@ export default class EviteRuntime {
                 this.CORES[coreName] = core
 
                 // register a app namespace
-                if (coreClass.namespace && coreClass.public) {
-                    if (typeof coreClass.public === "string") {
-                        coreClass.public = [coreClass.public]
-                    }
+                if (coreClass.namespace && core.public) {
+                    // freeze public methods using proxy
+                    publicCoresFunctions[coreClass.namespace] = new Proxy(core.public, {
+                        get: (target, prop) => {
+                            if (typeof target[prop] === "function") {
+                                return target[prop]
+                            }
 
-                    const publicContext = Object.fromEntries(coreClass.public.map((methodName) => {
-                        return [methodName, core[methodName].bind(core)]
-                    }))
-
-                    this.registerPublicMethod({
-                        key: coreClass.namespace,
-                        locked: true,
-                    }, publicContext)
+                            return target[prop]
+                        },
+                        set: () => {
+                            throw new Error(`Cannot set value to public core method`)
+                        }
+                    })
                 }
 
                 // register eventBus events
-                if (typeof core.events === "object") {
+                if (typeof core.onEvents === "object") {
                     Object.entries(core.events).forEach(([event, handler]) => {
                         this.eventBus.on(event, handler)
                     })
                 }
 
                 // handle global public methods
-                if (typeof core.publicMethods === "object") {
+                if (typeof core.registerToApp === "object") {
                     Object.entries(core.publicMethods).forEach(([method, handler]) => {
                         this.registerPublicMethod(method, handler)
                     })
@@ -300,9 +303,9 @@ export default class EviteRuntime {
                     }))
                 }
 
-                if (typeof core.initialize === "function") {
+                if (typeof core.onInitialize === "function") {
                     // by now, we gonna initialize from here instead push to queue
-                    await core.initialize()
+                    await core.onInitialize()
                 }
 
                 // emit event
@@ -312,9 +315,16 @@ export default class EviteRuntime {
                 this.STATES.LOADED_CORES.push(coreName)
             }
 
+            this.registerPublicMethod({
+                key: "cores",
+                locked: true,
+            }, Object.freeze(publicCoresFunctions))
+
             // emit event
             this.eventBus.emit(`runtime.initialize.cores.finish`)
         } catch (error) {
+            console.error(error)
+
             this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
             // make sure to throw that, app must crash if core fails to load
