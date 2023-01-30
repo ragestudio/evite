@@ -267,14 +267,14 @@ export default class EviteRuntime {
 
                 // register eventBus events
                 if (typeof core.onEvents === "object") {
-                    Object.entries(core.events).forEach(([event, handler]) => {
+                    Object.entries(core.onEvents).forEach(([event, handler]) => {
                         this.eventBus.on(event, handler)
                     })
                 }
 
                 // handle global public methods
                 if (typeof core.registerToApp === "object") {
-                    Object.entries(core.publicMethods).forEach(([method, handler]) => {
+                    Object.entries(core.registerToApp).forEach(([method, handler]) => {
                         this.registerPublicMethod(method, handler)
                     })
                 }
