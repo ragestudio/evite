@@ -45,6 +45,9 @@ export default class EviteRuntime {
         INITIALIZATION_TOOKS: null,
     })
 
+    APP_RENDERER = null
+    SPLASH_RENDERER = null
+
     constructor(
         App,
         Params = {
@@ -55,7 +58,11 @@ export default class EviteRuntime {
         this.AppComponent = App
         this.Params = Params
 
+        // toogle splash
+        this.attachSplashScreen()
+
         // controllers
+        this.rootContainer = document.getElementById(this.Params.renderMount ?? "root")
         this.history = this.registerPublicMethod({ key: "history", locked: true }, createBrowserHistory())
         this.eventBus = this.registerPublicMethod({ key: "eventBus", locked: true }, new EventBus())
 
@@ -67,9 +74,6 @@ export default class EviteRuntime {
         this.eventBus.on("runtime.initialize.start", async () => {
             this.STATES.LOAD_STATE = "initializing"
             this.STATES.INITIALIZATION_START = performance.now()
-
-            // render initialize
-            this.render(this.AppComponent.staticRenders?.Initialization ?? StaticRenders.Initialization)
         })
 
         this.eventBus.on("runtime.initialize.finish", () => {
@@ -105,6 +109,12 @@ export default class EviteRuntime {
             })
         })
 
+        if (typeof this.AppComponent.splashAwaitEvent === "string") {
+            this.eventBus.on(this.AppComponent.splashAwaitEvent, () => {
+                this.detachSplashScreen()
+            })
+        }
+
         // emit attached extensions change events
         Observable.observe(this.STATES.ATTACHED_EXTENSIONS, (changes) => {
             changes.forEach((change) => {
@@ -132,7 +142,11 @@ export default class EviteRuntime {
             })
         })
 
-        Observable.observe(this.STATES, () => {
+        Observable.observe(this.STATES, (changes) => {
+            if (this.APP_RENDERER && typeof this.APP_RENDERER.onRuntimeStateUpdate === "function") {
+                this.APP_RENDERER.onRuntimeStateUpdate(this.STATES, changes)
+            }
+
             this.debugUpdateRender()
         })
 
@@ -169,6 +183,8 @@ export default class EviteRuntime {
 
         await this.registerInternalExtensionToInitializer()
 
+        await this.performInitializerTasks()
+
         // call early app initializer 
         if (typeof this.AppComponent.initialize === "function") {
             await this.AppComponent.initialize.apply(this)
@@ -189,10 +205,11 @@ export default class EviteRuntime {
         // emit initialize finish event
         this.eventBus.emit("runtime.initialize.finish")
 
-        await this.performInitializerTasks()
-
-        // call render
         this.render()
+
+        if (!this.AppComponent.splashAwaitEvent) {
+            this.detachSplashScreen()
+        }
     }
 
     initializeCores = async () => {
@@ -247,6 +264,11 @@ export default class EviteRuntime {
 
                 // set core to context
                 this.CORES[coreName] = core
+
+                if (typeof core.onInitialize === "function") {
+                    // by now, we gonna initialize from here instead push to queue
+                    await core.onInitialize()
+                }
 
                 // register a app namespace
                 if (coreClass.namespace && core.public) {
@@ -303,11 +325,6 @@ export default class EviteRuntime {
                     }))
                 }
 
-                if (typeof core.onInitialize === "function") {
-                    // by now, we gonna initialize from here instead push to queue
-                    await core.onInitialize()
-                }
-
                 // emit event
                 this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
 
@@ -323,7 +340,7 @@ export default class EviteRuntime {
             // emit event
             this.eventBus.emit(`runtime.initialize.cores.finish`)
         } catch (error) {
-            console.error(error)
+            this.InternalConsole.error(error)
 
             this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
@@ -551,16 +568,56 @@ export default class EviteRuntime {
         })
     }
 
+    attachSplashScreen = () => {
+        // create a new div inside the container
+        let elementContainer = document.getElementById("splash-screen")
+
+        if (!elementContainer) {
+            elementContainer = document.createElement("div")
+
+            // set the id of the new div
+            elementContainer.id = "splash-screen"
+
+            document.body.appendChild(elementContainer)
+        }
+
+        this.SPLASH_RENDERER = ReactDOM.render(React.createElement((this.AppComponent.staticRenders?.Initialization ?? StaticRenders.Initialization), {
+            states: this.STATES,
+        }), elementContainer)
+    }
+
+    detachSplashScreen = async () => {
+        const container = document.getElementById("splash-screen")
+
+        if (container) {
+            if (this.SPLASH_RENDERER && typeof this.SPLASH_RENDERER.onUnmount) {
+                await this.SPLASH_RENDERER.onUnmount()
+            }
+
+            ReactDOM.unmountComponentAtNode(container)
+            container.remove()
+
+            this.SPLASH_RENDERER = null
+        }
+    }
+
     // RENDER METHOD
     render(component = this.AppComponent, props = {}) {
-        return ReactDOM.render(React.createElement(
+        this.APP_RENDERER = ReactDOM.render(React.createElement(
             component,
             {
-                runtime: this,
+                runtime: new Proxy(this, {
+                    get: (target, prop) => {
+                        return target[prop]
+                    },
+                    set: (target, prop, value) => {
+                        throw new Error("Cannot set property of runtime")
+                    }
+                }),
                 cores: this.CORES,
                 ExtensionsContext: this.ExtensionsContext.getProxy(),
                 ...props,
             }
-        ), document.getElementById(this.Params.renderMount ?? "root"))
+        ), this.rootContainer)
     }
 }
