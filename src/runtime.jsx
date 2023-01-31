@@ -95,6 +95,8 @@ export default class EviteRuntime {
                 this.detachSplashScreen()
             }
 
+            this.INTERNAL_CONSOLE.error("Runtime crashed on initialization \n", error)
+
             // render crash
             this.render(this.AppComponent.staticRenders?.Crash ?? StaticRenders.Crash, {
                 crash: {
@@ -344,8 +346,6 @@ export default class EviteRuntime {
             // emit event
             this.eventBus.emit(`runtime.initialize.cores.finish`)
         } catch (error) {
-            this.InternalConsole.error(error)
-
             this.eventBus.emit(`runtime.initialize.cores.failed`, error)
 
             // make sure to throw that, app must crash if core fails to load
