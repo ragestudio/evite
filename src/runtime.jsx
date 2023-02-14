@@ -109,6 +109,10 @@ export default class EviteRuntime {
         this.eventBus.on("runtime.crash", (crash) => {
             this.STATES.LOAD_STATE = "crashed"
 
+            if (this.SPLASH_RENDERER) {
+                this.detachSplashScreen()
+            }
+
             // render crash
             this.render(this.AppComponent.staticRenders?.Crash ?? StaticRenders.Crash, {
                 crash
