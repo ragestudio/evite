@@ -28,6 +28,8 @@ export default class EviteRuntime {
     PublicContext = window.app = Object()
     ExtensionsContext = new IsolatedContext(Object())
 
+    CoresPublicContext = Object()
+
     EXTENSIONS = Object()
     CORES = Object()
 
@@ -67,6 +69,19 @@ export default class EviteRuntime {
         this.eventBus = this.registerPublicMethod({ key: "eventBus", locked: true }, new EventBus())
 
         // append app methods
+        window.app.cores = new Proxy(this.CoresPublicContext, {
+            get: (target, key) => {
+                if (this.CoresPublicContext[key]) {
+                    return this.CoresPublicContext[key]
+                }
+
+                return null
+            },
+            set: (target, key, value) => {
+                throw new Error("You can't set a core value")
+            }
+        })
+
         this.registerPublicMethod({ key: "__eviteVersion", locked: true }, pkgJson.version)
         this.registerPublicMethod({ key: "toogleRuntimeDebugMode", locked: true }, this.toogleRuntimeDebugMode)
 
@@ -283,7 +298,7 @@ export default class EviteRuntime {
                 // register a app namespace
                 if (coreClass.namespace && core.public) {
                     // freeze public methods using proxy
-                    publicCoresFunctions[coreClass.namespace] = new Proxy(core.public, {
+                    this.CoresPublicContext[coreClass.namespace] = new Proxy(core.public, {
                         get: (target, prop) => {
                             if (typeof target[prop] === "function") {
                                 return target[prop]
@@ -341,11 +356,6 @@ export default class EviteRuntime {
                 // register internal core
                 this.STATES.LOADED_CORES.push(coreName)
             }
-
-            this.registerPublicMethod({
-                key: "cores",
-                locked: true,
-            }, Object.freeze(publicCoresFunctions))
 
             // emit event
             this.eventBus.emit(`runtime.initialize.cores.finish`)
