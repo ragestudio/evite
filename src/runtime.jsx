@@ -272,23 +272,21 @@ export default class EviteRuntime {
                 return 0
             })
 
-            const publicCoresFunctions = {}
-
             for await (let coreClass of cores) {
                 if (!coreClass.constructor) {
                     this.INTERNAL_CONSOLE.error(`Core [${core.name}] is not a class`)
                     continue
                 }
 
-                this.eventBus.emit(`runtime.initialize.core.${coreClass.name}.start`)
+                const refName = coreClass.refName ?? coreClass.name
+
+                this.eventBus.emit(`runtime.initialize.core.${refName}.start`)
 
                 // construct class
                 let core = new coreClass(this)
 
-                const coreName = core.constructor.name ?? core.refName
-
                 // set core to context
-                this.CORES[coreName] = core
+                this.CORES[refName] = core
 
                 if (typeof core.onInitialize === "function") {
                     // by now, we gonna initialize from here instead push to queue
@@ -351,10 +349,10 @@ export default class EviteRuntime {
                 }
 
                 // emit event
-                this.eventBus.emit(`runtime.initialize.core.${coreName}.finish`)
+                this.eventBus.emit(`runtime.initialize.core.${refName}.finish`)
 
                 // register internal core
-                this.STATES.LOADED_CORES.push(coreName)
+                this.STATES.LOADED_CORES.push(refName)
             }
 
             // emit event
