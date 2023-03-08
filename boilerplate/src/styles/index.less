@@ -1,0 +1,70 @@
+html,
+#root,
+body {
+    width: 100vw;
+    height: 100vh;
+
+    margin: 0;
+    padding: 0;
+
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+.app_header_wrapper {
+    position: sticky;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: fit-content;
+
+    background-color: #404040;
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .app_header {
+        width: 40%;
+
+        padding: 20px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        p,
+        span,
+        ul {
+            margin: 0;
+        }
+
+        ul {
+            display: flex;
+            flex-direction: row;
+
+            align-items: center;
+            justify-content: space-between;
+
+            list-style: none;
+
+            li {
+                margin: 0 10px;
+            }
+        }
+    }
+}
+
+.page_content {
+    width: 100%;
+    padding: 40px;
+}
