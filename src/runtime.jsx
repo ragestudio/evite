@@ -597,9 +597,11 @@ export default class EviteRuntime {
             document.body.appendChild(elementContainer)
         }
 
-        this.SPLASH_RENDERER = ReactDOM.render(React.createElement((this.AppComponent.staticRenders?.Initialization ?? StaticRenders.Initialization), {
-            states: this.STATES,
-        }), elementContainer)
+        if (this.AppComponent.staticRenders?.Initialization) {
+            this.SPLASH_RENDERER = ReactDOM.render(React.createElement((this.AppComponent.staticRenders?.Initialization), {
+                states: this.STATES,
+            }), elementContainer)
+        }
     }
 
     detachSplashScreen = async () => {
