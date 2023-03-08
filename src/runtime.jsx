@@ -239,15 +239,37 @@ export default class EviteRuntime {
 
     initializeCores = async () => {
         try {
-            let cores = await import("~/src/cores").catch((err) => {
-                this.INTERNAL_CONSOLE.warn(`Cannot load @src/cores.`, err)
-                return false
+            const coresPaths = {
+                ...import.meta.glob("/src/cores/**/[a-z[]*.jsx"),
+                ...import.meta.glob("/src/cores/**/[a-z[]*.js"),
+                ...import.meta.glob("/src/cores/**/[a-z[]*.ts"),
+                ...import.meta.glob("/src/cores/**/[a-z[]*.tsx"),
+            }
+
+            const coresKeys = Object.keys(coresPaths)
+
+            if (coresKeys.length === 0) {
+                this.INTERNAL_CONSOLE.warn(`Skipping cores initialization. No cores found.`)
+
+                return true
+            }
+
+            // import all cores
+            let cores = await Promise.all(coresKeys.map(async (key) => {
+                const core = await coresPaths[key]().catch((err) => {
+                    this.INTERNAL_CONSOLE.warn(`Cannot load core from ${key}.`, err)
+                    return false
+                })
+
+                return core.default ?? core
+            }))
+
+            cores = cores.filter((core) => {
+                return core.constructor
             })
 
-            cores = cores.default ?? cores
-
             if (!cores) {
-                this.INTERNAL_CONSOLE.warn(`Skipping cores initialization.`)
+                this.INTERNAL_CONSOLE.warn(`Skipping cores initialization. No valid cores found.`)
 
                 return true
             }
