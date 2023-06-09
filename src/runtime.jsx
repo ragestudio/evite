@@ -11,6 +11,8 @@ import { EventBus, InternalConsole } from "./internals"
 import { DebugWindow } from "./internals/debug"
 import * as StaticRenders from "./staticRenders"
 
+import isMobile from "./utils/isMobile"
+
 import pkgJson from "../package.json"
 
 import "./internals/style/index.css"
@@ -82,6 +84,7 @@ export default class EviteRuntime {
             }
         })
 
+        this.registerPublicMethod({ key: "isMobile", locked: true }, isMobile())
         this.registerPublicMethod({ key: "__eviteVersion", locked: true }, pkgJson.version)
         this.registerPublicMethod({ key: "toogleRuntimeDebugMode", locked: true }, this.toogleRuntimeDebugMode)
 
@@ -283,12 +286,14 @@ export default class EviteRuntime {
 
             // sort cores by dependencies
             cores = cores.sort((a, b) => {
-                if (a.dependencies?.includes(b.name) === true) {
-                    return 1
-                }
+                if (a.dependencies && b.dependencies) {
+                    if (a.dependencies.includes(b.refName ?? b.name)) {
+                        return 1
+                    }
 
-                if (b.dependencies?.includes(a.name) === true) {
-                    return -1
+                    if (b.dependencies.includes(a.refName ?? a.name)) {
+                        return -1
+                    }
                 }
 
                 return 0
@@ -436,7 +441,7 @@ export default class EviteRuntime {
                 document.body.appendChild(elementContainer)
             }
 
-            ReactDOM.render(<DebugWindow ctx={this} />, document.getElementById("debug-window"))
+            ReactDOM.render(React.createElement(DebugWindow, { ctx: this }), document.getElementById("debug-window"))
         } else if (elementContainer) {
             // remove element
             elementContainer.remove()
