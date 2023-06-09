@@ -243,11 +243,13 @@ export default class EviteRuntime {
     initializeCores = async () => {
         try {
             const coresPaths = {
-                ...import.meta.glob("/src/cores/**/[a-z[]*.jsx"),
-                ...import.meta.glob("/src/cores/**/[a-z[]*.js"),
-                ...import.meta.glob("/src/cores/**/[a-z[]*.ts"),
-                ...import.meta.glob("/src/cores/**/[a-z[]*.tsx"),
+                ...import.meta.glob("/src/cores/*/*.core.jsx"),
+                ...import.meta.glob("/src/cores/*/*.core.js"),
+                ...import.meta.glob("/src/cores/*/*.core.ts"),
+                ...import.meta.glob("/src/cores/*/*.core.tsx"),
             }
+
+            console.log(coresPaths)
 
             const coresKeys = Object.keys(coresPaths)
 
@@ -285,18 +287,23 @@ export default class EviteRuntime {
             }
 
             // sort cores by dependencies
-            cores = cores.sort((a, b) => {
-                if (a.dependencies && b.dependencies) {
-                    if (a.dependencies.includes(b.refName ?? b.name)) {
-                        return 1
-                    }
+            cores.forEach((core) => {
+                if (core.dependencies) {
+                    core.dependencies.forEach((dependency) => {
+                        // find dependency
+                        const dependencyIndex = cores.findIndex((_core) => {
+                            return (_core.refName ?? _core.name) === dependency
+                        })
 
-                    if (b.dependencies.includes(a.refName ?? a.name)) {
-                        return -1
-                    }
+                        if (dependencyIndex === -1) {
+                            this.INTERNAL_CONSOLE.error(`Cannot find dependency [${dependency}] for core [${core.name}]`)
+                            return
+                        }
+
+                        // move dependency to top
+                        cores.splice(0, 0, cores.splice(dependencyIndex, 1)[0])
+                    })
                 }
-
-                return 0
             })
 
             for await (let coreClass of cores) {
