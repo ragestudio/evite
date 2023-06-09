@@ -1,10 +1,12 @@
 import React from "react"
-import { EviteRuntime } from "evite"
+import { EviteRuntime } from "../../src"
 import { BrowserRouter } from "react-router-dom"
 
 import * as Router from "./router"
 
 import "styles/index.less"
+
+console.log(React.version)
 
 const AppHeader = () => {
     const onClickItem = (key) => {

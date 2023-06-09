@@ -27,6 +27,10 @@ export default defineConfig({
     resolve: {
         alias: aliases,
     },
+    optimizeDeps: {
+        exclude: ["evite"],
+        include: ["react-dom"]
+    },
     server: {
         fs: {
             allow: [".."]
