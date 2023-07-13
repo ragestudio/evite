@@ -1,5 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom"
+import { createRoot } from "react-dom/client"
 
 import { createBrowserHistory } from "history"
 import { Observable } from "object-observer"
@@ -66,7 +67,7 @@ export default class EviteRuntime {
         this.attachSplashScreen()
 
         // controllers
-        this.rootContainer = document.getElementById(this.Params.renderMount ?? "root")
+        this.root = createRoot(document.getElementById(this.Params.renderMount ?? "root"))
         this.history = this.registerPublicMethod({ key: "history", locked: true }, createBrowserHistory())
         this.eventBus = this.registerPublicMethod({ key: "eventBus", locked: true }, new EventBus())
 
@@ -358,8 +359,8 @@ export default class EviteRuntime {
                     })
                 }
 
-                if (typeof core.initializeBeforeRuntimeInit === "function") {
-                    this.appendToInitializer(core.initializeBeforeRuntimeInit.bind(core))
+                if (typeof core.initializeAfterCoresInit === "function") {
+                    this.appendToInitializer(core.initializeAfterCoresInit.bind(core))
                 }
 
                 if (typeof coreClass.awaitEvents === "object") {
@@ -655,7 +656,7 @@ export default class EviteRuntime {
 
     // RENDER METHOD
     render(component = this.AppComponent, props = {}) {
-        this.APP_RENDERER = ReactDOM.render(React.createElement(
+        this.APP_RENDERER = React.createElement(
             component,
             {
                 runtime: new Proxy(this, {
@@ -670,6 +671,8 @@ export default class EviteRuntime {
                 ExtensionsContext: this.ExtensionsContext.getProxy(),
                 ...props,
             }
-        ), this.rootContainer)
+        )
+
+        this.root.render(this.APP_RENDERER)
     }
 }
