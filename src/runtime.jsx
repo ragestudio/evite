@@ -250,8 +250,6 @@ export default class EviteRuntime {
                 ...import.meta.glob("/src/cores/*/*.core.tsx"),
             }
 
-            console.log(coresPaths)
-
             const coresKeys = Object.keys(coresPaths)
 
             if (coresKeys.length === 0) {
